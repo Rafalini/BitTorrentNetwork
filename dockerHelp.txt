@@ -1,0 +1,11 @@
+To list containers:
+
+docker ps -a
+
+To kill container:
+
+docker kill [container_id]
+
+To clear images [-a = all]:
+
+docker prune -a
