@@ -1,0 +1,14 @@
+Client currently sends to tracker text from stdin.
+$ ./a.out "input"
+
+
+TODO:
+  --files location
+  --command line interpreter
+  --download file
+  --upload file
+  --check file
+  --segmentate file
+  --notify tracker (new file / delete file)
+  --respond tracker notify
+  --handling .torrent files

@@ -1,14 +1,21 @@
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <stdlib.h>
 #include <netinet/in.h>
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <fstream>
+
 #define PORT 8080
 #define IPPROTOCOL 0
+
+using namespace std;
+
+void addNewPeer(string adress);
+bool ifcontains(string adress);
 
 int main(int argc, char const *argv[])
 {
@@ -17,6 +24,8 @@ int main(int argc, char const *argv[])
     int opt = 1;
     int addrlen = sizeof(address);
     char buffer[1024] = {0};
+    ofstream configFile;
+
 
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, IPPROTOCOL)) == 0)
@@ -42,7 +51,7 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
-    for(;;)
+    for(;;) //forever together love etc
     {
       if (listen(server_fd, 3) < 0)
       {
@@ -55,19 +64,44 @@ int main(int argc, char const *argv[])
           exit(EXIT_FAILURE);
       }
 
-      std::string response(1024, 0);
+      string response(1024, 0);
       if (read(new_socket, &response[0], 1024)<0) {
-          std::cerr << "Failed to read data from socket.\n";
+          cerr << "Failed to read data from socket.\n";
       }
-      char incomingAdress[10];
+      char incomingAdress[16]; // 4x3 digits + 3 dots + \0
       struct in_addr ipAddr = address.sin_addr;
       char str[INET_ADDRSTRLEN];
       inet_ntop( AF_INET, &ipAddr, incomingAdress, INET_ADDRSTRLEN );
 
-      std::cout <<"recived some message from: "<<incomingAdress << std::endl;
-      std::cout <<"recived contents: "<<response<<std::endl;
-      std::transform(response.begin(), response.end(),response.begin(), ::toupper);
+      addNewPeer(incomingAdress); //adds only if there is no such peer
+
+      cout <<"recived some message from: "<<incomingAdress << endl;
+      cout <<"recived contents: "<<response<<endl;
+      transform(response.begin(), response.end(),response.begin(), ::toupper);
       send(new_socket , response.c_str() , response.length() , 0 );
     }
     return 0;
+}
+
+void addNewPeer(string adress)
+{
+  if(!ifcontains(adress))
+  {
+    ofstream configFile;
+    configFile.open("peerList.cfg", ios::out | ios::app | ios::binary);
+    configFile << adress << endl;
+    configFile.close();
+  }
+}
+
+bool ifcontains(string adress)
+{
+  ifstream configFile ("peerList.cfg");
+  string content;
+
+  while(getline(configFile,content))
+    if(content == adress)
+      return true;
+  configFile.close();
+  return false;
 }
