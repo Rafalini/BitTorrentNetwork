@@ -12,3 +12,7 @@ TODO:
   --notify tracker (new file / delete file)
   --respond tracker notify
   --handling .torrent files
+
+DONE:
+  --save array to json
+  --serialize json to string and send

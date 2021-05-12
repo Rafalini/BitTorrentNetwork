@@ -5,7 +5,7 @@ SRCDIR = src
 BUILDDIR = build
 TARGETDIR = bin
 TESTDIR = unitTests
-TARGET = tracker
+TARGET = peer.out
 
 CPP_SOURCES = $(shell find $(SRCDIR) -type f -name *.$(CPP_EXT))
 CPP_TEST_SOURCES = $(shell find $(TESTDIR) -type f -name *.$(CPP_EXT))
@@ -39,12 +39,9 @@ test: tests
 	@echo " "
 	#./bin/UnitTests
 
-run: $(TARGET)
-	./$(TARGET) ./test/javaTestClasses/Test1.java
-
-
 clean:
 	@echo " Cleaning...";
 	@echo " $(RM) -r $(BUILDDIR) $(TARGETDIR)"; $(RM) -r $(BUILDDIR) $(TARGETDIR)
+	@echo " rm $(TARGET)"; rm $(TARGET)
 
 .PHONY: clean
