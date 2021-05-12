@@ -45,24 +45,12 @@ int main(int argc, char const *argv[])
     SA_IN.sin_port = htons(SERVERPORT);
 
     //binding
-    if (bind(server_fd, (struct sockaddr *)&SA_IN, sizeof(SA_IN))<0)
-    {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
-    }
+    checkError(bind(server_fd, (struct sockaddr *)&address, sizeof(address)), "bind failed");
 
     for(;;)
     {
-      if (listen(server_fd, 3) < 0)
-      {
-          perror("listen");
-          exit(EXIT_FAILURE);
-      }
-      if ((new_socket = accept(server_fd, (struct sockaddr *)&SA_IN, (socklen_t*)&addrlen))<0)
-      {
-          perror("accept");
-          exit(EXIT_FAILURE);
-      }
+      checkError(listen(server_fd, 3),"listen");
+      checkError((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)),"listen");
 
       int *clientSocket = (int*) malloc(sizeof(int));
       *clientSocket= new_socket;
@@ -77,9 +65,7 @@ void *handel_connection(void *client)
 {
   int new_socket =*(int*) client;
   std::string response(1024, 0);
-  if (read(new_socket, &response[0], 1024)<0) {
-      std::cerr << "Failed to read data from socket.\n";
-  }
+  checkError(read(new_socket, &response[0], 1024), "Failed to read data from socket");
   char incomingAdress[10];
   struct in_addr ipAddr = SA_IN.sin_addr;
   char str[INET_ADDRSTRLEN];

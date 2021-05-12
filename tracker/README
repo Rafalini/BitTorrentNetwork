@@ -1,5 +1,7 @@
 tracker1
   Single thread version.
+tracker2
+  Multi thread version. [NOT DEVELOPED]
 
   Tracker holds ip adresses of peers without duplicates.
 
@@ -8,6 +10,8 @@ TODO:
   --read from .cfg file
   --sent 'update' requests to peers
   --delete from .cfg ip addresses and file names
+  --syncing files for peer
 
-tracker2
-  Multi thread version.
+DONE:
+  --basic communication
+  --get array from json (string)
