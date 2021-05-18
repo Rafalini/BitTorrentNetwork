@@ -9,7 +9,7 @@
 #include "Functions.hpp"
 
 #define PORT 8080
-#define ADRESS "172.17.0.2"
+#define ADRESS "192.168.20.10"
 
 int main(int argc, char const *argv[])
 {

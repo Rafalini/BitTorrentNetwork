@@ -1,0 +1,40 @@
+version: "3.3"
+services:
+  tracker:
+    build:
+      context: .
+      dockerfile: ./tracker/Dockerfile
+    entrypoint: ["/tracker/tracker"]
+    networks:
+      bittorrent:
+        ipv4_address: 192.168.20.10
+  peer1:
+    build:
+      context: .
+      dockerfile: ./peer/Dockerfile
+    entrypoint: [ "/peer/peer", "sth"]
+    networks:
+      bittorrent:
+        ipv4_address: 192.168.20.11
+  peer2:
+    build:
+      context: .
+      dockerfile: ./peer/Dockerfile
+    entrypoint: [ "/peer/peer", "sth"]
+    networks:
+      bittorrent:
+        ipv4_address: 192.168.20.12
+  peer3:
+    build:
+      context: .
+      dockerfile: ./peer/Dockerfile
+    entrypoint: [ "/peer/peer", "sth"]
+    networks:
+      bittorrent:
+        ipv4_address: 192.168.20.13
+networks:
+  bittorrent:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.20.0/24
