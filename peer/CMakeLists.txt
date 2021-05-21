@@ -5,7 +5,7 @@ file(GLOB_RECURSE SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
 add_library(peer_lib STATIC ${SOURCE})
 target_include_directories(peer_lib PUBLIC ${HEADER})
-target_link_libraries(peer_lib tracker_lib)
+target_link_libraries(peer_lib pthread tracker_lib)
 
 add_executable(${PROJECT_NAME} ${SOURCE})
 target_include_directories(${PROJECT_NAME} PUBLIC ${HEADER})
