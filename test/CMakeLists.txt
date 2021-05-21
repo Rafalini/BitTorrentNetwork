@@ -3,7 +3,9 @@ project(bittorrent_test)
 find_package(Boost COMPONENTS system filesystem unit_test_framework REQUIRED)
 
 set(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/tests_main.cpp)
+
 add_subdirectory(config)
+add_subdirectory(integration)
 
 add_executable(${PROJECT_NAME} ${SOURCE})
 target_link_libraries(${PROJECT_NAME} PUBLIC
