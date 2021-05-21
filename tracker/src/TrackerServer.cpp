@@ -50,7 +50,6 @@
 void TrackerServer::handleRequest(int msgSocket, const std::string &clientIP, const std::string &configName) {
     std::string request = readMsg(msgSocket);
 
-    std::cout << request << " " << clientIP << std::endl;
     auto peerFiles = Config::generatePeerSet(request, ' ');
     updateConfig(configName, clientIP, peerFiles);
 

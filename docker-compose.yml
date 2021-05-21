@@ -4,7 +4,8 @@ services:
     build:
       context: .
       dockerfile: ./tracker/Dockerfile
-    entrypoint: ["/tracker/tracker"]
+    working_dir: /tracker
+    entrypoint: ["./tracker"]
     networks:
       bittorrent:
         ipv4_address: 192.168.20.10
@@ -12,7 +13,8 @@ services:
     build:
       context: .
       dockerfile: ./peer/Dockerfile
-    entrypoint: [ "/peer/peer", "sth"]
+    working_dir: /peer
+    command: ./peer
     networks:
       bittorrent:
         ipv4_address: 192.168.20.11
@@ -20,7 +22,8 @@ services:
     build:
       context: .
       dockerfile: ./peer/Dockerfile
-    entrypoint: [ "/peer/peer", "sth"]
+    working_dir: /peer
+    command: ./peer
     networks:
       bittorrent:
         ipv4_address: 192.168.20.12
@@ -28,7 +31,8 @@ services:
     build:
       context: .
       dockerfile: ./peer/Dockerfile
-    entrypoint: [ "/peer/peer", "sth"]
+    working_dir: /peer
+    command: ./peer
     networks:
       bittorrent:
         ipv4_address: 192.168.20.13

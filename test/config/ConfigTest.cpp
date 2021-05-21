@@ -21,14 +21,14 @@ BOOST_AUTO_TEST_SUITE(ConfigTests)
         pt::ptree tree;
         std::istringstream in(""
                               "{"
-                              "   \"peer1\" : [\"file1\", \"file2\", \"file3\"]"
+                              "   \"192.168.20.11\" : [\"file1\", \"file2\", \"file3\"]"
                               "}");
 
         pt::read_json(in, tree);
         auto cfg = Config::generateConfig(tree);
 
         auto expected = Config::Data{
-                {"peer1", {"file1", "file2", "file3"}}
+                {"192.168.20.11", {"file1", "file2", "file3"}}
         };
         BOOST_TEST(cfg == expected);
     }
@@ -37,20 +37,20 @@ BOOST_AUTO_TEST_SUITE(ConfigTests)
         pt::ptree tree;
         std::istringstream in(""
                               "{"
-                              "   \"peer1\" : [\"file1\", \"file2\", \"file3\"],"
-                              "   \"peer2\" : [\"file2\"],"
-                              "   \"peer3\" : [\"file1\", \"file3\", \"file2\", \"file4\"],"
-                              "   \"peer4\" : [\"file2\", \"file4\"]"
+                              "   \"192.168.20.11\" : [\"file1\", \"file2\", \"file3\"],"
+                              "   \"192.168.20.12\" : [\"file2\"],"
+                              "   \"192.168.20.13\" : [\"file1\", \"file3\", \"file2\", \"file4\"],"
+                              "   \"192.168.20.14\" : [\"file2\", \"file4\"]"
                               "}");
 
         pt::read_json(in, tree);
         auto cfg = Config::generateConfig(tree);
 
         auto expected = Config::Data{
-                {"peer1", {"file1", "file2", "file3"}},
-                {"peer2", {"file2"}},
-                {"peer3", {"file1", "file3", "file2", "file4"}},
-                {"peer4", {"file2", "file4"}}
+                {"192.168.20.11", {"file1", "file2", "file3"}},
+                {"192.168.20.12", {"file2"}},
+                {"192.168.20.13", {"file1", "file3", "file2", "file4"}},
+                {"192.168.20.14", {"file2", "file4"}}
         };
         BOOST_TEST(cfg == expected);
     }
@@ -68,16 +68,14 @@ BOOST_AUTO_TEST_SUITE(ConfigTests)
 
     BOOST_AUTO_TEST_CASE(single_key_property_tree) {
         auto cfg = Config::Data{
-                {"peer1", {"file1", "file2", "file3"}}
+                {"192.168.20.11", {"file1", "file2", "file3"}}
         };
         auto tree = Config::generatePropertyTree(cfg);
 
         pt::ptree expected;
         std::istringstream in("{"
-                              "\"peer1\": [\"file1\", \"file2\", \"file3\"]"
+                              "\"192.168.20.11\": [\"file1\", \"file2\", \"file3\"]"
                               "}");
-
-        std::cout << "\"" <<  tree.data() << "\"";
 
         pt::read_json(in, expected);
         BOOST_TEST(tree == expected);
@@ -85,19 +83,19 @@ BOOST_AUTO_TEST_SUITE(ConfigTests)
 
     BOOST_AUTO_TEST_CASE(multiple_keys_property_tree) {
         auto cfg = Config::Data{
-                {"peer1", {"file1", "file2", "file3"}},
-                {"peer2", {"file2"}},
-                {"peer3", {"file1", "file3", "file2", "file4"}},
-                {"peer4", {"file2", "file4"}}
+                {"192.168.20.11", {"file1", "file2", "file3"}},
+                {"192.168.20.12", {"file2"}},
+                {"192.168.20.13", {"file1", "file3", "file2", "file4"}},
+                {"192.168.20.14", {"file2", "file4"}}
         };
         auto tree = Config::generatePropertyTree(cfg);
 
         pt::ptree expected;
         std::istringstream in("{"
-                              "\"peer1\": [\"file1\", \"file2\", \"file3\"],"
-                              "\"peer2\": [\"file2\"],"
-                              "\"peer3\": [\"file1\", \"file2\", \"file3\", \"file4\"],"
-                              "\"peer4\": [\"file2\", \"file4\"]"
+                              "\"192.168.20.11\": [\"file1\", \"file2\", \"file3\"],"
+                              "\"192.168.20.12\": [\"file2\"],"
+                              "\"192.168.20.13\": [\"file1\", \"file2\", \"file3\", \"file4\"],"
+                              "\"192.168.20.14\": [\"file2\", \"file4\"]"
                               "}");
 
         pt::read_json(in, expected);
