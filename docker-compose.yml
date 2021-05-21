@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: ./peer/Dockerfile
     working_dir: /peer
-    command: ./peer
+    command: bash -c "sleep 2 && ./peer"
     networks:
       bittorrent:
         ipv4_address: 192.168.20.11
@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: ./peer/Dockerfile
     working_dir: /peer
-    command: ./peer
+    command: bash -c "sleep 2 && ./peer"
     networks:
       bittorrent:
         ipv4_address: 192.168.20.12
@@ -32,7 +32,7 @@ services:
       context: .
       dockerfile: ./peer/Dockerfile
     working_dir: /peer
-    command: ./peer
+    command: bash -c "sleep 2 && ./peer"
     networks:
       bittorrent:
         ipv4_address: 192.168.20.13
