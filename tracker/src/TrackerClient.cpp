@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <Config.hpp>
 
-std::map<std::string, std::set<std::string>> TrackerClient::sendData(const std::string& addr, int port, std::set<std::string> fileNames) {
+std::map<std::string, std::set<std::string>> TrackerClient::sendData(const std::string& addr, int port, const std::set<std::string>& fileNames) {
     // create socket file descriptor
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == -1)
@@ -33,6 +33,11 @@ std::map<std::string, std::set<std::string>> TrackerClient::sendData(const std::
 
     // get response
     std::string response = readMsg(sock);
+
+    // trim garbage
+    std::size_t found = response.find_last_of('}');
+    response = response.substr(0,found + 1);
+
     auto cfg = Config::generateConfig(response);
 
     close(sock);
