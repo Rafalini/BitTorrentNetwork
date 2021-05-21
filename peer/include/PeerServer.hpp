@@ -4,7 +4,7 @@
 #include <set>
 #include <map>
 
-class Peer {
+class PeerServer {
 public:
     void listenAndServe(const std::string& addr, int port);
     std::map<std::string, std::set<std::string>> sendHeartbeat(const std::string& trackerAddr, int port);

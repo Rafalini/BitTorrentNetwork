@@ -1,12 +1,12 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include "Peer.hpp"
+#include "PeerServer.hpp"
 
 BOOST_AUTO_TEST_SUITE(Heartbeat)
 
     BOOST_AUTO_TEST_CASE(SendHeartbeat) {
-        Peer peer;
+        PeerServer peer;
         auto res = peer.sendHeartbeat("192.168.20.10", 8080);
 
         std::set<std::string> expectedIPs{"192.168.20.11", "192.168.20.12", "192.168.20.13"};

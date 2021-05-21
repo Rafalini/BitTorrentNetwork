@@ -1,7 +1,7 @@
-#include "Peer.hpp"
+#include "PeerServer.hpp"
 
 int main(int argc, char const *argv[])
 {
-    Peer peer;
+    PeerServer peer;
     peer.listenAndServe("192.168.20.10", 8080);
 }

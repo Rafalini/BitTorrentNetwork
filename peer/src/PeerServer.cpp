@@ -1,4 +1,4 @@
-#include "Peer.hpp"
+#include "PeerServer.hpp"
 
 #include "TrackerClient.hpp"
 #include <SocketUtils.hpp>
@@ -13,7 +13,7 @@
 
 #define HEARTBEAT_INTERVAL 30
 
-void Peer::listenAndServe(const std::string &trackerAddr, int port) {
+void PeerServer::listenAndServe(const std::string &trackerAddr, int port) {
     sendHeartbeatPeriodically(trackerAddr, port, HEARTBEAT_INTERVAL);
 
     int sock = createListeningServerSocket(port);
@@ -30,7 +30,7 @@ void Peer::listenAndServe(const std::string &trackerAddr, int port) {
 
 }
 
-void Peer::sendHeartbeatPeriodically(const std::string& trackerAddr, int port, unsigned int interval) {
+void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int port, unsigned int interval) {
     std::thread([this, trackerAddr, port, interval] {
         while (true) {
             auto x = std::chrono::steady_clock::now() + std::chrono::seconds(interval);
@@ -40,7 +40,7 @@ void Peer::sendHeartbeatPeriodically(const std::string& trackerAddr, int port, u
     }).detach();
 }
 
-std::map<std::string, std::set<std::string>> Peer::sendHeartbeat(const std::string& trackerAddr, int port) {
+std::map<std::string, std::set<std::string>> PeerServer::sendHeartbeat(const std::string& trackerAddr, int port) {
     auto received = TrackerClient::sendData(trackerAddr, port, fileNames);
     for (const auto &peer : received) {
         std::cout << peer.first << ": ";
