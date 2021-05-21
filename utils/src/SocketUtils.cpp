@@ -47,6 +47,7 @@ std::string readMsg(int socket) {
     readXBytes(socket, msgLength, (void *) buffer);
 
     std::string request(buffer);
+
     delete[]buffer;
 
     return request;
@@ -54,10 +55,9 @@ std::string readMsg(int socket) {
 
 void readXBytes(int socket, unsigned int x, void *buffer) {
     int bytesRead = 0;
-    int result;
     while (bytesRead < x)
     {
-        result = read(socket, buffer + bytesRead, x - bytesRead);
+        int result; result = read(socket, buffer + bytesRead, x - bytesRead);
         if (result < 1) {
             std::cerr << "couldn't read bytes when expected";
             return;

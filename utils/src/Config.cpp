@@ -1,6 +1,7 @@
 #include "Config.hpp"
 
 #include <boost/property_tree/ini_parser.hpp>
+#include <iostream>
 
 Config::Data Config::load(const std::string &filename) {
     pt::ptree tree;
@@ -55,8 +56,6 @@ Config::Data Config::generateConfig(const std::string& strCfg) {
     std::istringstream in(strCfg);
 
     pt::read_json(in, tree);
-    auto cfg = Config::generateConfig(tree);
-
     return generateConfig(tree);
 }
 
