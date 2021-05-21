@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <iostream>
+#include <thread>
 
 [[noreturn]] void TrackerServer::listenAndServe(const std::string &configName, int port) {
     loadConfig(configName);
@@ -40,17 +41,19 @@
         if (msgSocket == -1)
             std::cerr << "couldn't accept connection from peer";
 
-        std::string clientIP = inet_ntoa(client.sin_addr);
-        handleRequest(msgSocket, clientIP, configName);
-
-        close(msgSocket);
+        std::thread([this, msgSocket, client, configName] {
+            std::string clientIP = inet_ntoa(client.sin_addr);
+            handleRequest(msgSocket, clientIP, configName);
+            close(msgSocket);
+        }).detach();
     }
 }
 
 void TrackerServer::handleRequest(int msgSocket, const std::string &clientIP, const std::string &configName) {
     std::string request = readMsg(msgSocket);
-
     auto peerFiles = Config::generatePeerSet(request, ' ');
+
+    std::lock_guard<std::mutex> guard(cfgMutex);
     updateConfig(configName, clientIP, peerFiles);
 
     auto strCfg = Config::generateStringConfig(cfg);

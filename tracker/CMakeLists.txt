@@ -7,7 +7,7 @@ set(SOURCE
 
 add_library(tracker_lib STATIC ${SOURCE})
 target_include_directories(tracker_lib PUBLIC ${HEADER})
-target_link_libraries(tracker_lib utils)
+target_link_libraries(tracker_lib pthread utils)
 
 add_executable(tracker ${CMAKE_CURRENT_SOURCE_DIR}/src/tracker.cpp)
 target_link_libraries(tracker PUBLIC tracker_lib -static-libgcc -static-libstdc++)
