@@ -11,6 +11,5 @@ public:
 
 private:
     std::set<std::string> fileNames = {"file1", "file2", "file3"};
-
     void sendHeartbeatPeriodically(const std::string &trackerAddr, int port, unsigned int interval);
 };

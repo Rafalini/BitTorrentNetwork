@@ -15,19 +15,19 @@
 
 void PeerServer::listenAndServe(const std::string &trackerAddr, int port) {
     sendHeartbeatPeriodically(trackerAddr, port, HEARTBEAT_INTERVAL);
+    std::thread([this, trackerAddr, port] {
+        int sock = createListeningServerSocket(port);
+        while (true) {
+            struct sockaddr_in client = {0};
+            unsigned int size = sizeof(client);
 
-    int sock = createListeningServerSocket(port);
-    while (true) {
-        struct sockaddr_in client = {0};
-        unsigned int size = sizeof(client);
+            int msgSocket = accept(sock, (struct sockaddr *) &client, &size);
+            if (msgSocket == -1)
+                std::cerr << "couldn't accept connection from peer";
 
-        int msgSocket = accept(sock, (struct sockaddr *) &client, &size);
-        if (msgSocket == -1)
-            std::cerr << "couldn't accept connection from peer";
-
-        close(msgSocket);
-    }
-
+            close(msgSocket);
+        }
+    }).detach();
 }
 
 void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int port, unsigned int interval) {
