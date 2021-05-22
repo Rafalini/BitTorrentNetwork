@@ -17,7 +17,7 @@ void PeerServer::listenAndServe(const std::string &trackerAddr, int port) {
     sendHeartbeatPeriodically(trackerAddr, port, HEARTBEAT_INTERVAL);
     std::thread([this, trackerAddr, port] {
         int sock = createListeningServerSocket(port);
-        while (true) {
+        while (running) {
             struct sockaddr_in client = {0};
             unsigned int size = sizeof(client);
 
@@ -32,9 +32,9 @@ void PeerServer::listenAndServe(const std::string &trackerAddr, int port) {
 
 void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int port, unsigned int interval) {
     std::thread([this, trackerAddr, port, interval] {
-        while (true) {
+        while (this->running) {
             auto x = std::chrono::steady_clock::now() + std::chrono::seconds(interval);
-            sendHeartbeat(trackerAddr, port);
+            data = sendHeartbeat(trackerAddr, port);
             std::this_thread::sleep_until(x);
         }
     }).detach();
@@ -49,6 +49,5 @@ std::map<std::string, std::set<std::string>> PeerServer::sendHeartbeat(const std
         }
         std::cout << std::endl;
     }
-
     return received;
 }

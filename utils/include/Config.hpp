@@ -11,7 +11,7 @@ namespace pt = boost::property_tree;
 
 class Config {
 public:
-    typedef std::map<std::string, std::set<std::string>> Data;
+    using Data = std::map<std::string, std::set<std::string>>;
 
     static Data load(const std::string &filename);
     static void save(const std::string &filename, const Data& cfg);
