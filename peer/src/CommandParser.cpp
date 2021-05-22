@@ -11,7 +11,7 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
             {"list-local-files", [this](istream &restOfLine) { listLocalFiles(peerServer.getFileNames()); }},
             {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }}
     };
-    knownCommands = {"help", "list-files", "list-local-files", "add-file file_path"};
+    knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path"};
 }
 
 void CommandsParser::addFile(istream& args) {

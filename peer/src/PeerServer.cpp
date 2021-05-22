@@ -10,8 +10,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-
-#define HEARTBEAT_INTERVAL 30
+constexpr int HEARTBEAT_INTERVAL = 30;
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -76,11 +75,11 @@ void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int p
         while (running) {
             auto x = std::chrono::steady_clock::now() + std::chrono::seconds(interval);
             Data newData = sendHeartbeat(trackerAddr, port);
+            lockData();
             if(data != newData) {
-                lockData();
                 data = newData;
-                unlockData();
             }
+            unlockData();
             this_thread::sleep_until(x);
         }
     }).detach();
@@ -89,13 +88,13 @@ void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int p
 std::map<std::string, std::set<std::string>> PeerServer::sendHeartbeat(const std::string& trackerAddr, int port) {
     auto received = TrackerClient::sendData(trackerAddr, port, fileNames);
 //  Uncomment to check received data
-//    for (const auto &peer : received) {
-//        std::cout << peer.first << ": ";
-//        for (const auto &file : peer.second) {
-//            std::cout << file << ", ";
-//        }
-//        std::cout << std::endl;
-//    }
+    for (const auto &peer : received) {
+        std::cout << peer.first << ": ";
+        for (const auto &file : peer.second) {
+            std::cout << file << ", ";
+        }
+        std::cout << std::endl;
+    }
     return received;
 }
 
