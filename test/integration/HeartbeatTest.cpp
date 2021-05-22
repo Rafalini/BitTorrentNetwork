@@ -6,8 +6,8 @@
 BOOST_AUTO_TEST_SUITE(Heartbeat)
 
     BOOST_AUTO_TEST_CASE(SendHeartbeat) {
-        PeerServer peer;
-        auto res = peer.sendHeartbeat("192.168.20.10", 8080);
+        PeerServer* peer = PeerServer::instance();
+        auto res = peer->sendHeartbeat("192.168.20.10", 8080);
 
         std::set<std::string> expectedIPs{"192.168.20.11", "192.168.20.12", "192.168.20.13"};
         std::set<std::string> expectedFiles{"file1", "file2", "file3"};

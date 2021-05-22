@@ -4,6 +4,7 @@
 #include <utility>
 #include <map>
 #include <set>
+#include <mutex>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -22,4 +23,6 @@ public:
     static std::string generateStringConfig(const Data& cfg);
     static pt::ptree generatePropertyTree(const Data& cfg);
     static std::set<std::string> generatePeerSet(const std::string &msg, char delimiter);
+private:
+    std::mutex config_access_mutex;
 };

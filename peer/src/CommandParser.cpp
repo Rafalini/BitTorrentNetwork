@@ -1,35 +1,63 @@
 #include "CommandsParser.h"
 #include "Config.hpp"
+#include <filesystem>
 using namespace std;
+namespace fs = std::filesystem;
 
 CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::ostream& out_) : peerServer(peerServer_), in(in_), out(out_) {
     commands = {
-            {"help", [this](istream &restOfLine) { listCommands(out, knownCommands); }},
-            {"list-files", [this](istream &restOfLine) { listFiles(out, peerServer.getData()); }},
-            {"list-local-files", [this](istream &restOfLine) { listLocalFiles(out, peerServer.getFileNames()); }}
+            {"help", [this](istream &restOfLine) { listCommands(knownCommands); }},
+            {"list-files", [this](istream &restOfLine) { listFiles(); }},
+            {"list-local-files", [this](istream &restOfLine) { listLocalFiles(peerServer.getFileNames()); }},
+            {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }}
     };
-    knownCommands = {"help", "list-files", "list-local-files"};
+    knownCommands = {"help", "list-files", "list-local-files", "add-file file_path"};
 }
 
-ostream& CommandsParser::listCommands(ostream& outStream, const set<string>& commands) {
-    outStream << "Known commands:\n";
+void CommandsParser::addFile(istream& args) {
+    string pathToFile;
+    args >> pathToFile;
+    if(pathToFile.empty()) {
+        out << "Error: Path to file not provided.\n";
+        return;
+    }
+    if(!fs::exists(pathToFile)) {
+        out << "Error: File doesn't exist\n";
+        return;
+    }
+    fs::path fromPath(pathToFile);
+    if(peerServer.addFile(fromPath))
+        out << fromPath.filename() << " saved\n";
+    else
+        out << "File was already added\n";
+}
+
+void CommandsParser::listCommands(const set<string>& commands) {
+    out << "Known commands:\n";
     for(auto& command: commands )
-        outStream << command << "\n";
-    return outStream;
+        out << command << "\n";
 }
 
-ostream& CommandsParser::listFiles(ostream& outStream, const Data& data) {
-    outStream << "Files available locally:\n";
-    for(auto& [filename, owners] : data )
-        outStream << filename << ": from " << owners.size() << "sources\n";
-    return outStream;
+void CommandsParser::listFiles() {
+    out << "Files available locally:\n";
+    peerServer.lockData();
+    auto data = peerServer.getData();
+    std::map<std::string, std::set<std::string>> dataTransformed;
+    for(auto& [owner, filenames] : data ) {
+        for(auto& filename : filenames) {
+            auto& fileOwners = dataTransformed[filename];
+            fileOwners.insert(owner);
+        }
+    }
+    peerServer.unlockData();
+    for(auto& [filename, owners] : dataTransformed )
+        out << filename << ": from " << owners.size() << " sources\n";
 }
 
-ostream& CommandsParser::listLocalFiles(ostream& outStream, const std::set<std::string>& filenames) {
-    outStream << "Files available locally:\n";
+void CommandsParser::listLocalFiles(const std::set<std::string>& filenames) {
+    out << "Files available locally:\n";
     for(auto& filename : filenames )
-        outStream << filename << "sources\n";
-    return outStream;
+        out << filename << "\n";
 }
 
 bool CommandsParser::parseCommand(istream& line) {

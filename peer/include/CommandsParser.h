@@ -12,9 +12,10 @@ public:
     CommandsParser(PeerServer& peerServer, std::istream& in, std::ostream& out);
     void parseInput();
 private:
-    std::ostream& listCommands(std::ostream& outStream, const std::set<std::string>& commands);
-    std::ostream& listFiles(std::ostream& outStream, const Data& data);
-    std::ostream& listLocalFiles(std::ostream& outStream, const std::set<std::string>& filenames);
+    void addFile(std::istream& args);
+    void listCommands(const std::set<std::string>& commands);
+    void listFiles();
+    void listLocalFiles(const std::set<std::string>& filenames);
     bool parseCommand(std::istream& line);
     std::map<std::string, std::function<void(std::istream&)>> commands;
     std::set<std::string> knownCommands;

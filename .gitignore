@@ -2,6 +2,7 @@
 /bin
 /build
 cmake-build-debug
+bittorrent
 # Prerequisites
 *.d
 
