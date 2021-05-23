@@ -43,13 +43,13 @@ std::string readMsg(int socket) {
         std::cerr << "can't send message because it's too long";
 
     // read message
-    char *buffer = new char[msgLength]; // not using smart pointers since it's not possible to do the trick with casting on void*
-    readXBytes(socket, msgLength, (void *) buffer);
+    char *buffer = new char[msgLength + 1]; // not using smart pointers since it's not possible to do the trick with casting on void*
+    buffer[msgLength] = 0;
 
+    readXBytes(socket, msgLength, (void *) buffer);
     std::string request(buffer);
 
     delete[]buffer;
-
     return request;
 }
 
