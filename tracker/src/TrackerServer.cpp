@@ -10,11 +10,10 @@
 [[noreturn]] void TrackerServer::listenAndServe(const std::string &configName, int port) {
     loadConfig(configName);
 
-    int sock = createListeningServerSocket(port);
+    auto [sock, addr] = createListeningServerSocket(port);
     while (true) {
         struct sockaddr_in client = {0};
         unsigned int size = sizeof(client);
-
         int msgSocket = accept(sock, (struct sockaddr *) &client, &size);
         if (msgSocket == -1)
             std::cerr << "couldn't accept connection from peer";

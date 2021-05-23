@@ -57,7 +57,8 @@ void readXBytes(int socket, unsigned int x, void *buffer) {
     }
 }
 
-int createListeningServerSocket(int port) {
+//returns sock id and address on which it listens
+std::pair<int, std::string> createListeningServerSocket(int port) {
     // create socket file descriptor
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == -1)
@@ -80,8 +81,7 @@ int createListeningServerSocket(int port) {
     // change socket mode to listening
     if (listen(sock, 3))
         throw std::runtime_error("couldn't change socket mode to listening");
-
-    return sock;
+    return std::make_pair(sock, inet_ntoa(address.sin_addr));
 }
 
 int createListeningClientSocket(const std::string& addr, int port) {

@@ -59,9 +59,10 @@ PeerServer::PeerServer() {
 }
 
 void PeerServer::listenAndServe(const std::string &trackerAddr, int port) {
+    auto [sock, addr] = createListeningServerSocket(port);
+    localName = addr;
     sendHeartbeatPeriodically(trackerAddr, port, HEARTBEAT_INTERVAL);
-    thread([this, trackerAddr, port] {
-        int sock = createListeningServerSocket(port);
+    thread([this, sock] {
         while (running) {
             struct sockaddr_in client = {0};
             unsigned int size = sizeof(client);
@@ -107,18 +108,18 @@ bool PeerServer::addFile(const fs::path& fromPath) {
     fs::create_directory(workingDir);
     fs::path destinationFile = workingDir / newFileName;
     lockLocalFiles();
-    if(localFiles.find({newFileName.string(), "localhost"}) != localFiles.end())
+    if(localFiles.find({newFileName.string(), localName}) != localFiles.end())
         return false;
-    localFiles.insert({newFileName.string(), "localhost"});
+    localFiles.insert({newFileName.string(), localName});
     //FIXME if file with same name already exists - leaves the old one quietly, what about file with same name, but different owners
     if(!fs::exists(destinationFile)) {
         fs::copy(fromPath, destinationFile);
         fs::create_directory(workingDir);
         fs::path configFile = workingDir / "config";
-        auto data = Config::load(configFile.string());
-        data["files"].insert({newFileName, "localhost"});
+        Config::Data data;
+        data["files"] = localFiles;
+        Config::encodeConfig(data);
         Config::save(configFile, data);
-        localFiles = data["files"];
     }
     unlockLocalFiles();
     return true;

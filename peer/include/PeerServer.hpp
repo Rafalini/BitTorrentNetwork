@@ -25,6 +25,7 @@ public:
     void unlockLocalFiles();
     bool addFile(const std::filesystem::path &fromPath);
 private:
+    std::string localName = "localhost";
     Config::Data data;
     std::set<FileDescriptor> localFiles;
     void sendHeartbeatPeriodically(const std::string &trackerAddr, int port, unsigned int interval);
