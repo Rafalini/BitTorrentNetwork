@@ -117,8 +117,8 @@ bool PeerServer::addFile(const fs::path& fromPath) {
         fs::path configFile = workingDir / "config";
         auto data = Config::load(configFile.string());
         data["files"].insert({newFileName, "localhost"});
+        Config::save(configFile, data);
         localFiles = data["files"];
-        Config::save("config", data);
     }
     unlockLocalFiles();
     return true;

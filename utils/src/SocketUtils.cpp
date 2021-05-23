@@ -10,16 +10,11 @@
 
 void sendMsg(int socket, const std::string& msg) {
     unsigned int msgSize = msg.size();
-    char *header = new char[sizeof(msgSize)];
-    memcpy(header, (void *) &msgSize, sizeof(msgSize));
-
     // send header
-    sendXBytes(socket, sizeof(msgSize), header);
+    sendXBytes(socket, sizeof(msgSize), &msgSize);
 
     // send message
     sendXBytes(socket, msgSize, (void *) msg.c_str());
-
-    delete []header;
 }
 
 void sendXBytes(int socket, unsigned int x, void *buffer) {
@@ -42,15 +37,11 @@ std::string readMsg(int socket) {
     if (msgLength > MAX_MSG_SIZE)
         std::cerr << "can't send message because it's too long";
 
-    // read message
-    char *buffer = new char[msgLength + 1]; // not using smart pointers since it's not possible to do the trick with casting on void*
-    buffer[msgLength] = 0;
+    std::string buffer;
+    buffer.resize(msgLength, 0);
+    readXBytes(socket, msgLength, (void *)buffer.data());
 
-    readXBytes(socket, msgLength, (void *) buffer);
-    std::string request(buffer);
-
-    delete[]buffer;
-    return request;
+    return buffer;
 }
 
 void readXBytes(int socket, unsigned int x, void *buffer) {
@@ -62,7 +53,6 @@ void readXBytes(int socket, unsigned int x, void *buffer) {
             std::cerr << "couldn't read bytes when expected";
             return;
         }
-
         bytesRead += result;
     }
 }
