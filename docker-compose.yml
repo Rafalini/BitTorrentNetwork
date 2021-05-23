@@ -14,6 +14,8 @@ services:
       context: .
       dockerfile: ./peer/Dockerfile
     working_dir: /peer
+    stdin_open: true
+    tty: true
     command: bash -c "sleep 2 && ./peer"
     networks:
       bittorrent:
@@ -23,6 +25,8 @@ services:
       context: .
       dockerfile: ./peer/Dockerfile
     working_dir: /peer
+    stdin_open: true
+    tty: true
     command: bash -c "sleep 2 && ./peer"
     networks:
       bittorrent:
@@ -31,6 +35,8 @@ services:
     build:
       context: .
       dockerfile: ./peer/Dockerfile
+    stdin_open: true
+    tty: true
     working_dir: /peer
     command: bash -c "sleep 2 && ./peer"
     networks:
