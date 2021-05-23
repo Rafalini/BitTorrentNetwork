@@ -39,7 +39,7 @@ void CommandsParser::listCommands(const set<string>& commands) {
 }
 
 void CommandsParser::listFiles() {
-    out << "Files available locally:\n";
+    out << "Files available to download:\n";
     peerServer.lockData();
     auto data = peerServer.getData();
     std::map<std::string, std::set<std::string>> dataTransformed;
