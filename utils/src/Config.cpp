@@ -1,72 +1,95 @@
 #include "Config.hpp"
 
-#include <boost/property_tree/ini_parser.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <iostream>
+#include <fstream>
 
 Config::Data Config::load(const std::string &filename) {
     pt::ptree tree;
     pt::read_json(filename, tree);
 
-    return generateConfig(tree);
+    return decodePropertyTree(tree);
 }
 
 void Config::save(const std::string &filename, const Data& cfg) {
-    auto tree = generatePropertyTree(cfg);
-    pt::write_json(filename, tree);
+    std::string encodedCfg = encodeConfig(cfg);
+
+    std::ofstream ofs(filename, std::ofstream::trunc);
+    ofs << encodedCfg;
+    ofs.close();
 }
 
-Config::Data Config::generateConfig(pt::ptree tree) {
-    Data cfg;
-    for (pt::ptree::value_type &mapItem : tree) {
-        std::set<FileDescriptor> val;
-        typedef pt::ptree::path_type path;
-        for (pt::ptree::value_type &setItem : tree.get_child(path(mapItem.first, ' ')))
-            val.insert(FileDescriptor{setItem.second.data(), "dummy OWNER"});
+std::string Config::encodePeerSet(const std::set<FileDescriptor> &files) {
+    std::string encodedMsg("[");
+    for (auto &file : files) {
+        std::string filename = R"("filename" : ")" + file.filename + "\"";
+        std::string fileowner = R"("owner" : ")" + file.owner + "\"";
 
-        cfg[mapItem.first] = val;
+        encodedMsg += "{" + filename += ", "  + fileowner + "},";
+    }
+
+    if (!files.empty()) // remove leading comma
+        encodedMsg.pop_back();
+    encodedMsg += "]";
+
+    return encodedMsg;
+}
+
+std::string Config::encodePeerSetMsg(const std::set<FileDescriptor> &files) {
+    return "{\"files\" : " + encodePeerSet(files) + "}";
+}
+
+std::set<FileDescriptor> Config::decodePeerSetMsg(const std::string &msg) {
+    pt::ptree tree;
+    std::istringstream in(msg);
+
+    pt::read_json(in, tree);
+
+    std::set<FileDescriptor> peerList;
+    for (auto &[tmp, fd] : tree.get_child("files")) {
+        std::string filename = fd.get_child("filename").data();
+        std::string owner = fd.get_child("owner").data();
+
+        peerList.insert(FileDescriptor{filename, owner});
+    }
+
+    return peerList;
+}
+
+std::string Config::encodeConfig(const Config::Data &cfg) {
+    std::string encodedMsg("{");
+    for (auto &[peerIP, files] : cfg)
+        encodedMsg +=  "\"" + peerIP + "\" : " + encodePeerSet(files) + ",";
+
+    if (!cfg.empty()) // remove leading comma
+        encodedMsg.pop_back();
+    encodedMsg += "}";
+
+    return encodedMsg;
+}
+
+Config::Data Config::decodeConfig(const std::string &msg) {
+    pt::ptree tree;
+    std::istringstream in(msg);
+
+    pt::read_json(in, tree);
+
+    return decodePropertyTree(tree);
+}
+
+Config::Data Config::decodePropertyTree(pt::ptree tree) {
+    Data cfg;
+    for (auto &[peerIP, tmp] : tree) {
+        std::set<FileDescriptor> files;
+        for (auto f : tree.get_child(path(peerIP, '|'))) {
+            std::string filename = f.second.get_child("filename").data();
+            std::string owner = f.second.get_child("owner").data();
+
+            files.insert(FileDescriptor{filename, owner});
+        }
+
+        cfg.insert({peerIP, files});
     }
 
     return cfg;
-}
-
-pt::ptree Config::generatePropertyTree(const Data& cfg) {
-    pt::ptree tree;
-    for (const auto& mapItem : cfg) {
-        pt::ptree set;
-        for (const auto& setItem : mapItem.second) {
-            pt::ptree file;
-            file.push_back(pt::ptree::value_type("filename", setItem.filename));
-            file.push_back(pt::ptree::value_type("owner", setItem.owner));
-            set.push_back(pt::ptree::value_type("", file));
-        }
-        tree.push_back(pt::ptree::value_type(mapItem.first, set));
-    }
-    return tree;
-}
-
-std::string Config::generateStringConfig(const Data& cfg) {
-    auto pTree = generatePropertyTree(cfg);
-
-    std::stringstream ss;
-    boost::property_tree::json_parser::write_json(ss, pTree);
-    return ss.str();
-}
-
-Config::Data Config::generateConfig(const std::string& strCfg) {
-    pt::ptree tree;
-    std::istringstream in(strCfg);
-
-    pt::read_json(in, tree);
-    return generateConfig(tree);
-}
-
-std::set<FileDescriptor> Config::generatePeerSet(const std::string &msg, char delimiter) {
-    std::string line;
-    std::set<FileDescriptor> peerList;
-    std::stringstream ss(msg);
-
-    while (std::getline(ss, line, delimiter))
-        peerList.insert({line});
-
-    return peerList;
 }

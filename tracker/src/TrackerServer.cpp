@@ -29,12 +29,12 @@
 
 void TrackerServer::handleRequest(int msgSocket, const std::string &clientIP, const std::string &configName) {
     std::string request = readMsg(msgSocket);
-    auto peerFiles = Config::generatePeerSet(request, ' ');
+    auto peerFiles = Config::decodePeerSetMsg(request);
 
     std::lock_guard<std::mutex> guard(cfgMutex);
     updateConfig(configName, clientIP, peerFiles);
 
-    auto strCfg = Config::generateStringConfig(cfg);
+    auto strCfg = Config::encodeConfig(cfg);
     sendMsg(msgSocket, strCfg);
 }
 

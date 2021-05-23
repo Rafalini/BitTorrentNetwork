@@ -29,16 +29,16 @@ struct FileDescriptor {
 class Config {
 public:
     using Data = std::map<std::string, std::set<FileDescriptor>>;
+    using path = pt::ptree::path_type;
 
     static Data load(const std::string &filename);
     static void save(const std::string &filename, const Data& cfg);
 
-    static Data generateConfig(pt::ptree tree);
-    static Data generateConfig(const std::string& cfg);
+    static std::string encodePeerSet(const std::set<FileDescriptor> &files);
+    static std::string encodePeerSetMsg(const std::set<FileDescriptor> &files);
+    static std::set<FileDescriptor> decodePeerSetMsg(const std::string &msg);
 
-    static std::string generateStringConfig(const Data& cfg);
-    static pt::ptree generatePropertyTree(const Data& cfg);
-    static std::set<FileDescriptor> generatePeerSet(const std::string &msg, char delimiter);
-private:
-    std::mutex config_access_mutex;
+    static std::string encodeConfig(const Data &cfg);
+    static Data decodeConfig(const std::string &msg);
+    static Data decodePropertyTree(boost::property_tree::ptree tree);
 };
