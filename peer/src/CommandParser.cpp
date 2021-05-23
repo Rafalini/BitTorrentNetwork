@@ -11,7 +11,7 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
             {"list-local-files", [this](istream &restOfLine) { listLocalFiles(peerServer.getLocalFiles()); }},
             {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }}
     };
-    knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path"};
+    knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path", "download-file filename"};
 }
 
 void CommandsParser::addFile(istream& args) {
@@ -51,7 +51,7 @@ void CommandsParser::listFiles() {
     }
     peerServer.unlockData();
     for(auto& [file, owners] : dataTransformed )
-        out << file.filename /* << " recognized by ownership of " << file.owner */ << ": from " << owners.size() << " sources\n";
+        out << file.filename  << /*" recognized by ownership of "*/"(" << file.owner  << "): from " << owners.size() << " sources\n";
 }
 
 void CommandsParser::listLocalFiles(const std::set<FileDescriptor>& files) {

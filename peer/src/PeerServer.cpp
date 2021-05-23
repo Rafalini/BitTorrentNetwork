@@ -5,7 +5,6 @@
 
 #include <iostream>
 #include <chrono>
-#include <functional>
 #include <thread>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -48,10 +47,14 @@ PeerServer::PeerServer() {
     fs::path workingDirectory = fs::current_path();
     workingDirectory /= "bittorrent";
     fs::create_directory(workingDirectory);
-    for (const auto & file : fs::directory_iterator(workingDirectory)) {
-        if(!file.is_directory()) {
-            localFiles.insert({file.path().filename().string(), "localhost"});
-        }
+    fs::path configFile = workingDirectory / "config";
+    if(fs::exists(configFile)) {
+        auto data = Config::load(configFile.string());
+        localFiles = data["files"];
+    } else { //create new config
+        Config::Data data;
+        data["files"] = {};
+        Config::save(configFile.string(),data);
     }
 }
 
@@ -100,17 +103,23 @@ std::map<std::string, std::set<FileDescriptor>> PeerServer::sendHeartbeat(const 
 
 bool PeerServer::addFile(const fs::path& fromPath) {
     fs::path newFileName = fromPath.filename();
-    fs::path destinationPath = fs::current_path();
-    destinationPath /= "bittorrent";
-    fs::create_directory(destinationPath);
-    destinationPath /= newFileName;
+    fs::path workingDir = fs::current_path() / "bittorrent";
+    fs::create_directory(workingDir);
+    fs::path destinationFile = workingDir / newFileName;
     lockLocalFiles();
     if(localFiles.find({newFileName.string(), "localhost"}) != localFiles.end())
         return false;
     localFiles.insert({newFileName.string(), "localhost"});
-    //FIXME if file with same name already exists - leaves the old one quietly
-    if(!fs::exists(destinationPath))
-       fs::copy(fromPath, destinationPath);
+    //FIXME if file with same name already exists - leaves the old one quietly, what about file with same name, but different owners
+    if(!fs::exists(destinationFile)) {
+        fs::copy(fromPath, destinationFile);
+        fs::create_directory(workingDir);
+        fs::path configFile = workingDir / "config";
+        auto data = Config::load(configFile.string());
+        data["files"].insert({newFileName, "localhost"});
+        localFiles = data["files"];
+        Config::save("config", data);
+    }
     unlockLocalFiles();
     return true;
 }
