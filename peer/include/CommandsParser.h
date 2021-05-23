@@ -15,7 +15,7 @@ public:
 private:
     void downloadFile(std::istream& args);
     void addFile(std::istream& args);
-    void listCommands(const std::set<std::string>& commands);
+    void listCommands(const std::vector<std::string>& commands);
     void listFiles();
     void listLocalFiles(const std::set<FileDescriptor>& files);
     bool parseCommand(std::istream& line);

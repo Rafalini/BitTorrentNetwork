@@ -51,7 +51,7 @@ void CommandsParser::downloadFile(istream& args) {
     }
 }
 
-void CommandsParser::listCommands(const set<string>& commands) {
+void CommandsParser::listCommands(const vector<string>& commands) {
     out << "Known commands:\n";
     for(auto& command: commands )
         out << command << "\n";
