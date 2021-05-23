@@ -4,7 +4,9 @@
 #include <set>
 #include <map>
 
+using DataAndIp = std::pair<Config::Data, std::string>;
+
 class TrackerClient {
 public:
-    static std::map<std::string, std::set<FileDescriptor>> sendData(const std::string& addr, int port, const std::set<FileDescriptor>&fileNames);
+    static DataAndIp sendData(const std::string& addr, int port, const std::set<FileDescriptor>&fileNames);
 };

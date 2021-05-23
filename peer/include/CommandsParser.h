@@ -5,6 +5,7 @@
 #include <sstream>
 #include <map>
 #include <set>
+#include <vector>
 #include <functional>
 
 class CommandsParser {
@@ -12,13 +13,14 @@ public:
     CommandsParser(PeerServer& peerServer, std::istream& in, std::ostream& out);
     void parseInput();
 private:
+    void downloadFile(std::istream& args);
     void addFile(std::istream& args);
     void listCommands(const std::set<std::string>& commands);
     void listFiles();
     void listLocalFiles(const std::set<FileDescriptor>& files);
     bool parseCommand(std::istream& line);
     std::map<std::string, std::function<void(std::istream&)>> commands;
-    std::set<std::string> knownCommands;
+    std::vector<std::string> knownCommands;
     PeerServer& peerServer;
     std::istream& in;
     std::ostream& out;

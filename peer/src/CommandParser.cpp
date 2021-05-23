@@ -9,9 +9,10 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
             {"help", [this](istream &restOfLine) { listCommands(knownCommands); }},
             {"list-files", [this](istream &restOfLine) { listFiles(); }},
             {"list-local-files", [this](istream &restOfLine) { listLocalFiles(peerServer.getLocalFiles()); }},
-            {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }}
+            {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }},
+            {"download-file", [this](istream &restOfLine) { downloadFile(restOfLine); }}
     };
-    knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path", "download-file filename"};
+    knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path", "download-file filename [original_owner]"};
 }
 
 void CommandsParser::addFile(istream& args) {
@@ -32,32 +33,45 @@ void CommandsParser::addFile(istream& args) {
         out << "File was already added\n";
 }
 
+
+void CommandsParser::downloadFile(istream& args) {
+    string fileName, owner;
+    args >> fileName >> owner;
+    auto result = peerServer.downloadFile(fileName, owner);
+    switch(result) {
+        case PeerServer::DownloadResult::DOWNLOAD_OK:
+            out << "Downloading of " << fileName << " has started.\n";
+            return;
+        case PeerServer::DownloadResult::FILE_ALREADY_PRESENT:
+            out << "File is already available locally\n";
+            return;
+        case PeerServer::DownloadResult::FILE_NOT_FOUND:
+            out << "File not found\n";
+            return;
+    }
+}
+
 void CommandsParser::listCommands(const set<string>& commands) {
     out << "Known commands:\n";
     for(auto& command: commands )
         out << command << "\n";
+    out << "owner is ignored if there is only one instance of file with the given name\n";
 }
 
 void CommandsParser::listFiles() {
     out << "Files available to download:\n";
     peerServer.lockData();
     auto data = peerServer.getData();
-    std::map<FileDescriptor, std::set<std::string>> dataTransformed;
-    for(auto& [owner, filenames] : data ) {
-        for(auto& file : filenames) {
-            auto& fileOwners = dataTransformed[file];
-            fileOwners.insert(owner);
-        }
-    }
+    auto dataTransformed = peerServer.transformData(data);
     peerServer.unlockData();
     for(auto& [file, owners] : dataTransformed )
-        out << file.filename  << /*" recognized by ownership of "*/"(" << file.owner  << "): from " << owners.size() << " sources\n";
+        out << file.filename  << "(" << file.owner  << "): from " << owners.size() << " sources\n";
 }
 
 void CommandsParser::listLocalFiles(const std::set<FileDescriptor>& files) {
     out << "Files available locally:\n";
     for(auto& file : files )
-        out << file.filename << "\n";
+        out << file.filename << "(" << file.owner << ")"<< "\n";
 }
 
 bool CommandsParser::parseCommand(istream& line) {

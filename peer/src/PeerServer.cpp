@@ -42,7 +42,6 @@ void PeerServer::unlockLocalFiles() {
     fileNamesMutex.unlock();
 }
 
-
 PeerServer::PeerServer() {
     fs::path workingDirectory = fs::current_path();
     workingDirectory /= "bittorrent";
@@ -59,8 +58,7 @@ PeerServer::PeerServer() {
 }
 
 void PeerServer::listenAndServe(const std::string &trackerAddr, int port) {
-    auto [sock, addr] = createListeningServerSocket(port);
-    localName = addr;
+    auto sock = createListeningServerSocket(port);
     sendHeartbeatPeriodically(trackerAddr, port, HEARTBEAT_INTERVAL);
     thread([this, sock] {
         while (running) {
@@ -74,44 +72,85 @@ void PeerServer::listenAndServe(const std::string &trackerAddr, int port) {
     }).detach();
 }
 
+void PeerServer::updateData(const Config::Data& newData) {
+    lockData();
+    if(data != newData) {
+        data = newData;
+    }
+    unlockData();
+}
+
+PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, const string& owner) {
+    lockData();
+    auto transformedData = transformData(data);
+    unlockData();
+    std::map<FileDescriptor, std::set<std::string>> foundFiles;
+    for_each(transformedData.begin(), transformedData.end(), [&foundFiles, &fileName](const auto& file) {
+        if(file.first.filename == fileName)
+            foundFiles.insert(file);
+    });
+    if(foundFiles.size() == 0) {
+        return DownloadResult::FILE_NOT_FOUND;
+    }
+    if(foundFiles.size() == 1) {
+        startDownloadingFile(*foundFiles.begin());
+        return DownloadResult::DOWNLOAD_OK;
+    }
+    for(const auto& file : foundFiles) {
+        if(file.first.owner == owner) {
+            startDownloadingFile(file);
+            return DownloadResult::DOWNLOAD_OK;
+        }
+    }
+    return DownloadResult::FILE_NOT_FOUND;
+}
+
+void PeerServer::startDownloadingFile(const std::pair<FileDescriptor, set<string>>& file) {
+    std::cout << "DOWNLOADING WOULD BE STARTED NOW\n";
+}
+
+std::map<FileDescriptor, std::set<std::string>> PeerServer::transformData(const Config::Data &) {
+    std::map<FileDescriptor, std::set<std::string>> dataTransformed;
+    for(auto&[owner, filenames] : data ) {
+        for (auto &file : filenames) {
+            auto &fileOwners = dataTransformed[file];
+            fileOwners.insert(owner);
+        }
+    }
+    return dataTransformed;
+}
+
 void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int port, unsigned int interval) {
     thread([this, trackerAddr, port, interval] {
+        //a little overhead at start, but guaranties that ipaddr is not changes during run
+        auto [newData, ipAddr] = sendHeartbeat(trackerAddr, port);
+        if(localName != ipAddr)
+            localName = ipAddr;
+        updateData(newData);
         while (running) {
             auto x = std::chrono::steady_clock::now() + std::chrono::seconds(interval);
-            Config::Data newData = sendHeartbeat(trackerAddr, port);
-            lockData();
-            if(data != newData) {
-                data = newData;
-            }
-            unlockData();
+            auto [newData, _] = sendHeartbeat(trackerAddr, port);
+            updateData(newData);
             this_thread::sleep_until(x);
         }
     }).detach();
 }
 
-std::map<std::string, std::set<FileDescriptor>> PeerServer::sendHeartbeat(const std::string& trackerAddr, int port) {
+DataAndIp PeerServer::sendHeartbeat(const std::string& trackerAddr, int port) {
     auto received = TrackerClient::sendData(trackerAddr, port, localFiles);
-//  Uncomment to check received data
-    for (const auto &peer : received) {
-        std::cout << peer.first << ": ";
-        for (const auto &file : peer.second) {
-            std::cout << file.filename << " - " << file.owner << ", ";
-        }
-        std::cout << std::endl;
-    }
+    std::cout << "new data received\n";
     return received;
 }
 
 bool PeerServer::addFile(const fs::path& fromPath) {
-    fs::path newFileName = fromPath.filename();
+    string newFileName = fromPath.filename();
     fs::path workingDir = fs::current_path() / "bittorrent";
     fs::create_directory(workingDir);
-    fs::path destinationFile = workingDir / newFileName;
     lockLocalFiles();
-    if(localFiles.find({newFileName.string(), localName}) != localFiles.end())
+    if(localFiles.find({newFileName, localName}) != localFiles.end())
         return false;
-    localFiles.insert({newFileName.string(), localName});
-    //FIXME if file with same name already exists - leaves the old one quietly, what about file with same name, but different owners
+    localFiles.insert({newFileName, localName});
+    fs::path destinationFile = workingDir / (newFileName + ":" + localName);
     if(!fs::exists(destinationFile)) {
         fs::copy(fromPath, destinationFile);
         fs::create_directory(workingDir);

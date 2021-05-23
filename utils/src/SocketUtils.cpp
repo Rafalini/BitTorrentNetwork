@@ -18,9 +18,10 @@ void sendMsg(int socket, const std::string& msg) {
 }
 
 void sendXBytes(int socket, unsigned int x, void *buffer) {
+    char* buffer_ = (char*)buffer;
     int sendBytes = 0;
     while (sendBytes < x) {
-        int packageSize = send(socket, buffer + sendBytes, x - sendBytes, 0);
+        int packageSize = send(socket, buffer_ + sendBytes, x - sendBytes, 0);
         if (packageSize <= 0)
             std::cerr << "couldn't send bytes when expected";
 
@@ -45,10 +46,11 @@ std::string readMsg(int socket) {
 }
 
 void readXBytes(int socket, unsigned int x, void *buffer) {
+    char* buffer_ = (char*)buffer;
     int bytesRead = 0;
     while (bytesRead < x)
     {
-        int result; result = read(socket, buffer + bytesRead, x - bytesRead);
+        int result; result = read(socket, buffer_ + bytesRead, x - bytesRead);
         if (result < 1) {
             std::cerr << "couldn't read bytes when expected";
             return;
@@ -58,7 +60,7 @@ void readXBytes(int socket, unsigned int x, void *buffer) {
 }
 
 //returns sock id and address on which it listens
-std::pair<int, std::string> createListeningServerSocket(int port) {
+int createListeningServerSocket(int port) {
     // create socket file descriptor
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == -1)
@@ -81,7 +83,7 @@ std::pair<int, std::string> createListeningServerSocket(int port) {
     // change socket mode to listening
     if (listen(sock, 3))
         throw std::runtime_error("couldn't change socket mode to listening");
-    return std::make_pair(sock, inet_ntoa(address.sin_addr));
+    return sock;
 }
 
 int createListeningClientSocket(const std::string& addr, int port) {

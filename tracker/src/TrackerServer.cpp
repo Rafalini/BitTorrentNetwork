@@ -10,7 +10,7 @@
 [[noreturn]] void TrackerServer::listenAndServe(const std::string &configName, int port) {
     loadConfig(configName);
 
-    auto [sock, addr] = createListeningServerSocket(port);
+    auto sock = createListeningServerSocket(port);
     while (true) {
         struct sockaddr_in client = {0};
         unsigned int size = sizeof(client);
@@ -32,6 +32,9 @@ void TrackerServer::handleRequest(int msgSocket, const std::string &clientIP, co
 
     std::lock_guard<std::mutex> guard(cfgMutex);
     updateConfig(configName, clientIP, peerFiles);
+
+    //send ip addr
+    sendMsg(msgSocket, clientIP);
 
     auto strCfg = Config::encodeConfig(cfg);
     sendMsg(msgSocket, strCfg);
