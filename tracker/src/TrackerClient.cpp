@@ -5,16 +5,17 @@
 #include <unistd.h>
 #include <Config.hpp>
 
-std::map<std::string, std::set<std::string>> TrackerClient::sendData(const std::string& addr, int port, const std::set<std::string>& fileNames) {
+std::map<std::string, std::set<FileDescriptor>> TrackerClient::sendData(const std::string& addr, int port, const std::set<FileDescriptor>& fileNames) {
     int sock = createListeningClientSocket(addr, port);
 
     std::string message;
-    for (const auto& filename : fileNames)
-        message += filename + " ";
-    message.pop_back(); // remove leading space
+    for (const auto& file : fileNames)
+        message += "{ \"filename\": " + file.filename + ", \"owner\" : " + file.owner + "},";
+
+    if(message.size() != 0) //STRING MUST BE EMPTY
+        message.pop_back(); // remove leading space
 
     sendMsg(sock, message);
-
     // get response
     std::string response = readMsg(sock);
 

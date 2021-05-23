@@ -38,8 +38,7 @@ void TrackerServer::handleRequest(int msgSocket, const std::string &clientIP, co
     sendMsg(msgSocket, strCfg);
 }
 
-void TrackerServer::updateConfig(const std::string& configName, const std::string& peerIP, const std::set<std::string>& peerFiles) {
-    //cfg.insert({peerIP, peerFiles});
+void TrackerServer::updateConfig(const std::string& configName, const std::string& peerIP, const std::set<FileDescriptor>& peerFiles) {
     cfg[peerIP] = peerFiles;
     Config::save(configName, cfg);
 }

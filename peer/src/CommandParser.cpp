@@ -8,7 +8,7 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
     commands = {
             {"help", [this](istream &restOfLine) { listCommands(knownCommands); }},
             {"list-files", [this](istream &restOfLine) { listFiles(); }},
-            {"list-local-files", [this](istream &restOfLine) { listLocalFiles(peerServer.getFileNames()); }},
+            {"list-local-files", [this](istream &restOfLine) { listLocalFiles(peerServer.getLocalFiles()); }},
             {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }}
     };
     knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path"};
@@ -42,22 +42,22 @@ void CommandsParser::listFiles() {
     out << "Files available to download:\n";
     peerServer.lockData();
     auto data = peerServer.getData();
-    std::map<std::string, std::set<std::string>> dataTransformed;
+    std::map<FileDescriptor, std::set<std::string>> dataTransformed;
     for(auto& [owner, filenames] : data ) {
-        for(auto& filename : filenames) {
-            auto& fileOwners = dataTransformed[filename];
+        for(auto& file : filenames) {
+            auto& fileOwners = dataTransformed[file];
             fileOwners.insert(owner);
         }
     }
     peerServer.unlockData();
-    for(auto& [filename, owners] : dataTransformed )
-        out << filename << ": from " << owners.size() << " sources\n";
+    for(auto& [file, owners] : dataTransformed )
+        out << file.filename /* << " recognized by ownership of " << file.owner */ << ": from " << owners.size() << " sources\n";
 }
 
-void CommandsParser::listLocalFiles(const std::set<std::string>& filenames) {
+void CommandsParser::listLocalFiles(const std::set<FileDescriptor>& files) {
     out << "Files available locally:\n";
-    for(auto& filename : filenames )
-        out << filename << "\n";
+    for(auto& file : files )
+        out << file.filename << "\n";
 }
 
 bool CommandsParser::parseCommand(istream& line) {

@@ -18,12 +18,12 @@ void Config::save(const std::string &filename, const Data& cfg) {
 Config::Data Config::generateConfig(pt::ptree tree) {
     Data cfg;
     for (pt::ptree::value_type &mapItem : tree) {
-        std::set<std::string> val;
+        std::set<FileDescriptor> val;
         typedef pt::ptree::path_type path;
         for (pt::ptree::value_type &setItem : tree.get_child(path(mapItem.first, ' ')))
-            val.insert(setItem.second.data());
+            val.insert(FileDescriptor{setItem.second.data(), "dummy OWNER"});
 
-        cfg.insert({mapItem.first, val});
+        cfg[mapItem.first] = val;
     }
 
     return cfg;
@@ -33,21 +33,22 @@ pt::ptree Config::generatePropertyTree(const Data& cfg) {
     pt::ptree tree;
     for (const auto& mapItem : cfg) {
         pt::ptree set;
-        for (const auto& setItem : mapItem.second)
-            set.push_back(pt::ptree::value_type("", setItem));
-
+        for (const auto& setItem : mapItem.second) {
+            pt::ptree file;
+            file.push_back(pt::ptree::value_type("filename", setItem.filename));
+            file.push_back(pt::ptree::value_type("owner", setItem.owner));
+            set.push_back(pt::ptree::value_type("", file));
+        }
         tree.push_back(pt::ptree::value_type(mapItem.first, set));
     }
-
     return tree;
 }
 
 std::string Config::generateStringConfig(const Data& cfg) {
-    auto ptree = generatePropertyTree(cfg);
+    auto pTree = generatePropertyTree(cfg);
 
     std::stringstream ss;
-    boost::property_tree::json_parser::write_json(ss, ptree);
-
+    boost::property_tree::json_parser::write_json(ss, pTree);
     return ss.str();
 }
 
@@ -59,13 +60,13 @@ Config::Data Config::generateConfig(const std::string& strCfg) {
     return generateConfig(tree);
 }
 
-std::set<std::string> Config::generatePeerSet(const std::string &msg, char delimiter) {
+std::set<FileDescriptor> Config::generatePeerSet(const std::string &msg, char delimiter) {
     std::string line;
-    std::set<std::string> peerList;
+    std::set<FileDescriptor> peerList;
     std::stringstream ss(msg);
 
     while (std::getline(ss, line, delimiter))
-        peerList.insert(line);
+        peerList.insert({line});
 
     return peerList;
 }

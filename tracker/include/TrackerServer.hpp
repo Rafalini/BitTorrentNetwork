@@ -13,7 +13,7 @@ public:
 private:
     void handleRequest(int msgSocket, const std::string& clientIP, const std::string &configName);
     void loadConfig(const std::string& configName);
-    void updateConfig(const std::string& configName, const std::string& peerIP, const std::set<std::string>& peerFiles);
+    void updateConfig(const std::string& configName, const std::string& peerIP, const std::set<FileDescriptor>& peerFiles);
 
     std::mutex cfgMutex;
     Config::Data cfg;

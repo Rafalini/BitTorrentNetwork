@@ -1,5 +1,5 @@
 #pragma once
-
+#include "Config.hpp"
 #include <string>
 #include <set>
 #include <map>
@@ -8,26 +8,25 @@
 #include <ostream>
 #include <filesystem>
 
-using Data = std::map<std::string, std::set<std::string>>;
 class PeerServer {
 private:
     PeerServer();
 public:
     static PeerServer* instance();
     void listenAndServe(const std::string& addr, int port);
-    Data sendHeartbeat(const std::string& trackerAddr, int port);
+    Config::Data sendHeartbeat(const std::string& trackerAddr, int port);
     void stop() { running = false;}
-    std::set<std::string>& getFileNames(){ return fileNames; }
-    const Data& getData() { return data; }
+    std::set<FileDescriptor>& getLocalFiles(){ return localFiles; }
+    const Config::Data& getData() { return data; }
     //synchronization methods
     void lockData();
     void unlockData();
-    void lockFileNames();
-    void unlockFileNames();
+    void lockLocalFiles();
+    void unlockLocalFiles();
     bool addFile(const std::filesystem::path &fromPath);
 private:
-    Data data;
-    std::set<std::string> fileNames;
+    Config::Data data;
+    std::set<FileDescriptor> localFiles;
     void sendHeartbeatPeriodically(const std::string &trackerAddr, int port, unsigned int interval);
     bool running = true;
     std::mutex fileNamesMutex;

@@ -35,11 +35,11 @@ void PeerServer::lockData() {
 void PeerServer::unlockData() {
     dataMutex.unlock();
 }
-void PeerServer::lockFileNames() {
+void PeerServer::lockLocalFiles() {
     fileNamesMutex.lock();
 }
 
-void PeerServer::unlockFileNames() {
+void PeerServer::unlockLocalFiles() {
     fileNamesMutex.unlock();
 }
 
@@ -50,7 +50,7 @@ PeerServer::PeerServer() {
     fs::create_directory(workingDirectory);
     for (const auto & file : fs::directory_iterator(workingDirectory)) {
         if(!file.is_directory()) {
-            fileNames.insert(file.path().filename().string());
+            localFiles.insert({file.path().filename().string(), "localhost"});
         }
     }
 }
@@ -74,7 +74,7 @@ void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int p
     thread([this, trackerAddr, port, interval] {
         while (running) {
             auto x = std::chrono::steady_clock::now() + std::chrono::seconds(interval);
-            Data newData = sendHeartbeat(trackerAddr, port);
+            Config::Data newData = sendHeartbeat(trackerAddr, port);
             lockData();
             if(data != newData) {
                 data = newData;
@@ -85,13 +85,13 @@ void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int p
     }).detach();
 }
 
-std::map<std::string, std::set<std::string>> PeerServer::sendHeartbeat(const std::string& trackerAddr, int port) {
-    auto received = TrackerClient::sendData(trackerAddr, port, fileNames);
+std::map<std::string, std::set<FileDescriptor>> PeerServer::sendHeartbeat(const std::string& trackerAddr, int port) {
+    auto received = TrackerClient::sendData(trackerAddr, port, localFiles);
 //  Uncomment to check received data
     for (const auto &peer : received) {
         std::cout << peer.first << ": ";
         for (const auto &file : peer.second) {
-            std::cout << file << ", ";
+            std::cout << file.filename << " - " << file.owner << ", ";
         }
         std::cout << std::endl;
     }
@@ -104,13 +104,13 @@ bool PeerServer::addFile(const fs::path& fromPath) {
     destinationPath /= "bittorrent";
     fs::create_directory(destinationPath);
     destinationPath /= newFileName;
-    lockFileNames();
-    if(fileNames.find(newFileName.string()) != fileNames.end())
+    lockLocalFiles();
+    if(localFiles.find({newFileName.string(), "localhost"}) != localFiles.end())
         return false;
-    fileNames.insert(newFileName);
+    localFiles.insert({newFileName.string(), "localhost"});
     //FIXME if file with same name already exists - leaves the old one quietly
     if(!fs::exists(destinationPath))
        fs::copy(fromPath, destinationPath);
-    unlockFileNames();
+    unlockLocalFiles();
     return true;
 }

@@ -15,7 +15,7 @@ private:
     void addFile(std::istream& args);
     void listCommands(const std::set<std::string>& commands);
     void listFiles();
-    void listLocalFiles(const std::set<std::string>& filenames);
+    void listLocalFiles(const std::set<FileDescriptor>& files);
     bool parseCommand(std::istream& line);
     std::map<std::string, std::function<void(std::istream&)>> commands;
     std::set<std::string> knownCommands;
