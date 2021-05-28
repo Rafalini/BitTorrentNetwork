@@ -5,26 +5,21 @@
 #include <unistd.h>
 #include <Config.hpp>
 
-std::map<std::string, std::set<std::string>> TrackerClient::sendData(const std::string& addr, int port, const std::set<std::string>& fileNames) {
+DataAndIp TrackerClient::sendData(const std::string& addr, int port, const std::set<FileDescriptor>& fileNames) {
     int sock = createListeningClientSocket(addr, port);
 
-    std::string message;
-    for (const auto& filename : fileNames)
-        message += filename + " ";
-    message.pop_back(); // remove leading space
-
+    std::string message = Config::encodePeerSetMsg(fileNames);
     sendMsg(sock, message);
+
+    //get ip addr
+    std::string ipaddr = readMsg(sock);
 
     // get response
     std::string response = readMsg(sock);
 
-    // FIXME trim garbage
-    std::size_t found = response.find_last_of('}');
-    response = response.substr(0,found + 1);
-
-    auto cfg = Config::generateConfig(response);
+    auto cfg = Config::decodeConfig(response);
 
     close(sock);
 
-    return cfg;
+    return std::make_pair(cfg, ipaddr);
 }

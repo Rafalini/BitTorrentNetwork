@@ -1,10 +1,12 @@
 #pragma once
-
+#include "Config.hpp"
 #include <string>
 #include <set>
 #include <map>
 
+using DataAndIp = std::pair<Config::Data, std::string>;
+
 class TrackerClient {
 public:
-    static std::map<std::string, std::set<std::string>> sendData(const std::string& addr, int port, const std::set<std::string>&fileNames);
+    static DataAndIp sendData(const std::string& addr, int port, const std::set<FileDescriptor>&fileNames);
 };

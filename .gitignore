@@ -1,7 +1,8 @@
 # Building locations
 /bin
 /build
-
+cmake-build-debug
+bittorrent
 # Prerequisites
 *.d
 
@@ -37,3 +38,5 @@
 
 # gui
 .idea
+#helpers
+recompile.sh

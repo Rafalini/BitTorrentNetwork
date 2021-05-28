@@ -10,22 +10,18 @@
 
 void sendMsg(int socket, const std::string& msg) {
     unsigned int msgSize = msg.size();
-    char *header = new char[sizeof(msgSize)];
-    memcpy(header, (void *) &msgSize, sizeof(msgSize));
-
     // send header
-    sendXBytes(socket, sizeof(msgSize), header);
+    sendXBytes(socket, sizeof(msgSize), &msgSize);
 
     // send message
     sendXBytes(socket, msgSize, (void *) msg.c_str());
-
-    delete []header;
 }
 
 void sendXBytes(int socket, unsigned int x, void *buffer) {
+    char* buffer_ = (char*)buffer;
     int sendBytes = 0;
     while (sendBytes < x) {
-        int packageSize = send(socket, buffer + sendBytes, x - sendBytes, 0);
+        int packageSize = send(socket, buffer_ + sendBytes, x - sendBytes, 0);
         if (packageSize <= 0)
             std::cerr << "couldn't send bytes when expected";
 
@@ -42,31 +38,28 @@ std::string readMsg(int socket) {
     if (msgLength > MAX_MSG_SIZE)
         std::cerr << "can't send message because it's too long";
 
-    // read message
-    char *buffer = new char[msgLength]; // not using smart pointers since it's not possible to do the trick with casting on void*
-    readXBytes(socket, msgLength, (void *) buffer);
+    std::string buffer;
+    buffer.resize(msgLength, 0);
+    readXBytes(socket, msgLength, (void *)buffer.data());
 
-    std::string request(buffer);
-
-    delete[]buffer;
-
-    return request;
+    return buffer;
 }
 
 void readXBytes(int socket, unsigned int x, void *buffer) {
+    char* buffer_ = (char*)buffer;
     int bytesRead = 0;
     while (bytesRead < x)
     {
-        int result; result = read(socket, buffer + bytesRead, x - bytesRead);
+        int result; result = read(socket, buffer_ + bytesRead, x - bytesRead);
         if (result < 1) {
             std::cerr << "couldn't read bytes when expected";
             return;
         }
-
         bytesRead += result;
     }
 }
 
+//returns sock id and address on which it listens
 int createListeningServerSocket(int port) {
     // create socket file descriptor
     int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -90,7 +83,6 @@ int createListeningServerSocket(int port) {
     // change socket mode to listening
     if (listen(sock, 3))
         throw std::runtime_error("couldn't change socket mode to listening");
-
     return sock;
 }
 
