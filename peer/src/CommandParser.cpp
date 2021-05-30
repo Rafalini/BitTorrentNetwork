@@ -93,10 +93,12 @@ bool CommandsParser::parseCommand(istream& line) {
 
 void CommandsParser::parseInput() {
     out << "Please type in \"help\" to get the list of commands" << std::endl;
+    std::cout<<PeerServer::instance()->getMyAddr()<<":~$ ";
     string line;
     getline(in, line);
     stringstream lineStringStream(line);
     while(parseCommand(lineStringStream)) {
+        std::cout<<PeerServer::instance()->getMyAddr()<<":~$ ";
         getline(in, line);
         lineStringStream = stringstream(line);
     }

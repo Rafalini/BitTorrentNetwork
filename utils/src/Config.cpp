@@ -35,6 +35,7 @@ std::string Config::encodePeerSet(const std::set<FileDescriptor> &files) {
     return encodedMsg;
 }
 
+//enocde list of files to JSON
 std::string Config::encodePeerSetMsg(const std::set<FileDescriptor> &files) {
     return "{\"files\" : " + encodePeerSet(files) + "}";
 }
@@ -55,7 +56,7 @@ std::set<FileDescriptor> Config::decodePeerSetMsg(const std::string &msg) {
 
     return peerList;
 }
-
+//encode property tree to JSON
 std::string Config::encodeConfig(const Config::Data &cfg) {
     std::string encodedMsg("{");
     for (auto &[peerIP, files] : cfg)
@@ -68,6 +69,7 @@ std::string Config::encodeConfig(const Config::Data &cfg) {
     return encodedMsg;
 }
 
+//decode from JSON to property tree
 Config::Data Config::decodeConfig(const std::string &msg) {
     pt::ptree tree;
     std::istringstream in(msg);

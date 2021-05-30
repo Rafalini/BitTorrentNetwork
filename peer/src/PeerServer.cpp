@@ -57,7 +57,7 @@ PeerServer::PeerServer() {
     }
 }
 
-void PeerServer::listenAndServe(const std::string &trackerAddr, int port) {
+void PeerServer::listenAndServe(const std::string &trackerAddr, int port){
     auto sock = createListeningServerSocket(port);
     sendHeartbeatPeriodically(trackerAddr, port, HEARTBEAT_INTERVAL);
     thread([this, sock] {
@@ -72,6 +72,7 @@ void PeerServer::listenAndServe(const std::string &trackerAddr, int port) {
     }).detach();
 }
 
+//update local information about files
 void PeerServer::updateData(const Config::Data& newData) {
     lockData();
     if(data != newData) {
@@ -107,6 +108,19 @@ PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, cons
 
 void PeerServer::startDownloadingFile(const std::pair<FileDescriptor, set<string>>& file) {
     std::cout << "DOWNLOADING WOULD BE STARTED NOW\n";
+    //get number of chunks
+    //for all chunks
+    //  request chunk
+    //  save chunk
+}
+
+void PeerServer::startUploadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file)
+{
+    std::cout << "UPLOAD WOULD BE STARTED NOW\n";
+    //send number of chunks
+    //for all chunks
+    //  request chunk
+    //  save chunk
 }
 
 std::map<FileDescriptor, std::set<std::string>> PeerServer::transformData(const Config::Data &) {
@@ -121,6 +135,8 @@ std::map<FileDescriptor, std::set<std::string>> PeerServer::transformData(const 
 }
 
 void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int port, unsigned int interval) {
+    auto [newData, ipAddr] = sendHeartbeat(trackerAddr, port);
+    myAddr = ipAddr;
     thread([this, trackerAddr, port, interval] {
         //a little overhead at start, but guaranties that ipaddr is not changes during run
         auto [newData, ipAddr] = sendHeartbeat(trackerAddr, port);
@@ -129,7 +145,6 @@ void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int p
         updateData(newData);
         while (running) {
             auto x = std::chrono::steady_clock::now() + std::chrono::seconds(interval);
-            std::cout << "HeartBeat, now"<<std::endl;
             auto [newData, _] = sendHeartbeat(trackerAddr, port);
             updateData(newData);
             this_thread::sleep_until(x);
@@ -139,9 +154,11 @@ void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int p
 
 DataAndIp PeerServer::sendHeartbeat(const std::string& trackerAddr, int port) {
     auto received = TrackerClient::sendData(trackerAddr, port, localFiles);
-    std::cout << "Heartbeat update, new data received\n";
     return received;
 }
+
+std::string PeerServer::getMyAddr() {return myAddr;}
+
 
 bool PeerServer::addFile(const fs::path& fromPath) {
     string newFileName = fromPath.filename();

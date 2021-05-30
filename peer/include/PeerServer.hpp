@@ -46,8 +46,12 @@ public:
     DownloadResult downloadFile(const std::string& fileName, const std::string& owner);
     void updateData(const Config::Data& data);
     bool addFile(const std::filesystem::path &fromPath);
+    std::string getMyAddr();
 private:
+    std::string myAddr;
+    int chunkSize = 1024; //bytes
     void startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
+    void startUploadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
     std::string localName = "localhost";
     Config::Data data;
     std::set<FileDescriptor> localFiles;
