@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-constexpr int HEARTBEAT_INTERVAL = 30;
+constexpr int HEARTBEAT_INTERVAL = 10;
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -129,6 +129,7 @@ void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int p
         updateData(newData);
         while (running) {
             auto x = std::chrono::steady_clock::now() + std::chrono::seconds(interval);
+            std::cout << "HeartBeat, now"<<std::endl;
             auto [newData, _] = sendHeartbeat(trackerAddr, port);
             updateData(newData);
             this_thread::sleep_until(x);
@@ -138,7 +139,7 @@ void PeerServer::sendHeartbeatPeriodically(const std::string& trackerAddr, int p
 
 DataAndIp PeerServer::sendHeartbeat(const std::string& trackerAddr, int port) {
     auto received = TrackerClient::sendData(trackerAddr, port, localFiles);
-    std::cout << "new data received\n";
+    std::cout << "Heartbeat update, new data received\n";
     return received;
 }
 

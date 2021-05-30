@@ -15,7 +15,7 @@ struct FileDescriptor {
     std::string filename;
     std::string owner;
     bool operator<(const FileDescriptor& other) const {
-        return filename < other.filename || filename == other.filename && owner < other.owner;
+        return filename < other.filename || (filename == other.filename && owner < other.owner);
     }
     bool operator==(const FileDescriptor& other) const {
         return filename == other.filename && owner == other.owner;

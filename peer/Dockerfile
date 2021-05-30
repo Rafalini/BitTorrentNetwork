@@ -1,2 +1,4 @@
 FROM debian:latest
-COPY ./bin/peer/peer /peer/peer
+RUN apt-get update
+RUN apt-get -y install less
+COPY ./peer/peer /peer/peer
