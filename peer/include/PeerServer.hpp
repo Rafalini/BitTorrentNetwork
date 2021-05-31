@@ -43,7 +43,8 @@ public:
     enum class DownloadResult {
         DOWNLOAD_OK = 0,
         FILE_NOT_FOUND,
-        FILE_ALREADY_PRESENT
+        FILE_ALREADY_PRESENT,
+        DOWNLOAD_ABORTED
     };
     DownloadResult downloadFile(const std::string& fileName, const std::string& owner);
     void updateData(const Config::Data& data);
@@ -51,9 +52,9 @@ public:
     std::string getMyAddr();
 private:
     std::string myAddr;
-    const int chunkSize = 1024; //size of one chunk of data that is send during file download
+    const int chunkSize = 1; //size of one chunk of data that is send during file download
     long fileSize(std::filesystem::path file);
-    void startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
+//    void startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
     void handleDownloadRequest(int msgSocket);
     std::string localName = "localhost";
     Config::Data data; //std::map<std::string, std::set<FileDescriptor>>

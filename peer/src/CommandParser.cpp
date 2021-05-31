@@ -40,13 +40,16 @@ void CommandsParser::downloadFile(istream& args) {
     auto result = peerServer.downloadFile(fileName, owner);
     switch(result) {
         case PeerServer::DownloadResult::DOWNLOAD_OK:
-            out << "Downloading of " << fileName << " has started.\n";
+//            out << "Downloading of " << fileName << " has started.\n";
             return;
         case PeerServer::DownloadResult::FILE_ALREADY_PRESENT:
             out << "File is already available locally\n";
             return;
         case PeerServer::DownloadResult::FILE_NOT_FOUND:
             out << "File not found\n";
+            return;
+        case PeerServer::DownloadResult::DOWNLOAD_ABORTED:
+            out << "Download aborted\n";
             return;
     }
 }

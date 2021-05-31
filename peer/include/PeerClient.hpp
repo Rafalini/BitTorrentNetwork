@@ -1,8 +1,10 @@
-//
-// Created by rav on 31.05.2021.
-//
+#pragma once
+#include "Config.hpp"
+#include "PeerServer.hpp"
+#include <string>
+#include <set>
 
-#ifndef BITTORRENT_PEERCLIENT_HPP
-#define BITTORRENT_PEERCLIENT_HPP
-
-#endif //BITTORRENT_PEERCLIENT_HPP
+class PeerClient {
+public:
+    static PeerServer::DownloadResult startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
+};

@@ -1,8 +1,10 @@
 #include "PeerServer.hpp"
+#include "PeerClient.hpp"
 
 #include "TrackerClient.hpp"
 #include <SocketUtils.hpp>
 
+#include <unistd.h>
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -85,12 +87,12 @@ PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, cons
         return DownloadResult::FILE_NOT_FOUND;
     }
     if(foundFiles.size() == 1) {
-        startDownloadingFile(*foundFiles.begin());
+        PeerClient::startDownloadingFile(*foundFiles.begin());
         return DownloadResult::DOWNLOAD_OK;
     }
     for(const auto& file : foundFiles) {
         if(file.first.owner == owner) {
-            startDownloadingFile(file);
+            PeerClient::startDownloadingFile(file);
             return DownloadResult::DOWNLOAD_OK;
         }
     }
@@ -114,36 +116,11 @@ PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, cons
     }
 }
 
-void PeerServer::startDownloadingFile(const std::pair<FileDescriptor, set<string>>& file) {
-    int socket = createListeningClientSocket(file.first.owner, 8080);
-
-    sendMsg(socket,file.first.filename); //send file name to owner
-    long bytesToDownload = std::atol(readMsg(socket).c_str()); //get file size in bytes
-
-    std::cout << "Requesting "<<bytesToDownload<<" bytes of data download"<<std::endl;
-
-    fs::path workingDir = fs::current_path() / "bittorrent";
-    fs::path destinationFile = workingDir / (file.first.filename + ":" + file.first.owner);
-
-    while(bytesToDownload > 0) {
-        ofstream output(destinationFile, ios::binary | ofstream::app);
-
-        std::string line = readMsg(socket);
-        std::cout << line << std::endl;
-        output << line;
-
-        output.close();
-
-        bytesToDownload -= (long) line.length();
-    }
-    std::cout << "Download ended" << std::endl;
-}
-
 void PeerServer::handleDownloadRequest(int msgSocket) //upload file
 {
     std::string fileName = readMsg(msgSocket);
 
-    std::cout<<"Received download request for: "<<fileName<<std::endl;
+    std::cout<<std::endl<<"Received download request for: "<<fileName<<std::endl;
 
     fs::path workingDir = fs::current_path() / "bittorrent";
     fs::path destinationFile = workingDir / (fileName + ":" + localName);
@@ -162,10 +139,10 @@ void PeerServer::handleDownloadRequest(int msgSocket) //upload file
 
         sendMsg(msgSocket, line);
         input.close();
-
+        usleep(1000*300); //microseconds
         bytesToUpload -= (long) input.gcount();
     }
-    std::cout << "Uploaded "<< fileSize(destinationFile) <<" bytes"<< std::endl;
+    std::cout << "Uploaded "<< fileSize(destinationFile) <<" bytes"<< std::endl<< ":~$ ";
 }
 
 long PeerServer::fileSize(std::filesystem::path file)
