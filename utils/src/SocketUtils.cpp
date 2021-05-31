@@ -100,7 +100,7 @@ int createListeningClientSocket(const std::string& addr, int port) {
         throw std::runtime_error("invalid address");
 
     if (connect(sock, (struct sockaddr *) &server, sizeof(server)) == -1)
-        throw std::runtime_error("couldn't connect to tracker");
+        throw std::runtime_error("couldn't connect to server");
 
     return sock;
 }
