@@ -56,7 +56,7 @@ std::set<FileDescriptor> Config::decodePeerSetMsg(const std::string &msg) {
 
     return peerList;
 }
-//encode property tree to JSON
+//encode to JSON
 std::string Config::encodeConfig(const Config::Data &cfg) {
     std::string encodedMsg("{");
     for (auto &[peerIP, files] : cfg)

@@ -56,19 +56,13 @@ PeerServer::PeerServer() {
         Config::save(configFile.string(),data);
     }
 }
-
-void PeerServer::listenAndServe(const std::string &trackerAddr, int port){
+void PeerServer::startServer(const std::string &trackerAddr, int port)
+{
     auto sock = createListeningServerSocket(port);
     sendHeartbeatPeriodically(trackerAddr, port, HEARTBEAT_INTERVAL);
-    thread([this, sock] {
-        while (running) {
-            struct sockaddr_in client = {0};
-            unsigned int size = sizeof(client);
-            int msgSocket = accept(sock, (struct sockaddr *) &client, &size);
-            if (msgSocket == -1)
-                cerr << "couldn't accept connection from peer";
-            close(msgSocket);
-        }
+
+    thread([this,sock] { //start listening service
+        listenAndServe(sock);
     }).detach();
 }
 
@@ -83,7 +77,7 @@ void PeerServer::updateData(const Config::Data& newData) {
 
 PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, const string& owner) {
     lockData();
-    auto transformedData = transformData(data);
+    auto transformedData = transformData();
     unlockData();
     std::map<FileDescriptor, std::set<std::string>> foundFiles;
     for_each(transformedData.begin(), transformedData.end(), [&foundFiles, &fileName](const auto& file) {
@@ -106,24 +100,42 @@ PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, cons
     return DownloadResult::FILE_NOT_FOUND;
 }
 
+[[noreturn]] void PeerServer::listenAndServe(int port){ //run upload threads on upcoming download requests
+    auto sock = createListeningServerSocket(port);
+    while (true) {
+        struct sockaddr_in client = {0};
+        unsigned int size = sizeof(client);
+        int downloadSocket = accept(sock, (struct sockaddr *) &client, &size);
+        if (downloadSocket == -1)
+            std::cerr << "couldn't accept connection from peer";
+
+        std::thread([this, downloadSocket, client] {
+            std::string clientIP = inet_ntoa(client.sin_addr);
+            handleDownloadRequest(downloadSocket, clientIP);
+            close(downloadSocket);
+        }).detach();
+    }
+}
+
 void PeerServer::startDownloadingFile(const std::pair<FileDescriptor, set<string>>& file) {
-    std::cout << "DOWNLOADING WOULD BE STARTED NOW\n";
-    //get number of chunks
-    //for all chunks
-    //  request chunk
-    //  save chunk
+    //open socket
+    int socket = createListeningClientSocket(file.first.owner, 8080);
+    sendMsg(socket,file.first.filename);
+//    std::string fileName = readMsg(socket);
+    std::cout << "Download of "<<file.first.filename<<" starts..."<<std::endl;
+    std::cout << "Owner: "<<file.first.owner<<std::endl;
+//    std::cout << "Message: "<<fileName<<std::endl;
 }
 
-void PeerServer::startUploadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file)
+void PeerServer::handleDownloadRequest(int msgSocket, const std::string &clientIP)
 {
-    std::cout << "UPLOAD WOULD BE STARTED NOW\n";
-    //send number of chunks
-    //for all chunks
-    //  request chunk
-    //  save chunk
+    std::cout << "handluje request" << std::endl;
+    std::string fileName = readMsg(msgSocket);
+//    sendMsg(msgSocket,"dupadupa");
+    std::cout << "Upload of "<<fileName<<" would start now..."<<std::endl;
 }
 
-std::map<FileDescriptor, std::set<std::string>> PeerServer::transformData(const Config::Data &) {
+std::map<FileDescriptor, std::set<std::string>> PeerServer::transformData() {
     std::map<FileDescriptor, std::set<std::string>> dataTransformed;
     for(auto&[owner, filenames] : data ) {
         for (auto &file : filenames) {
@@ -171,7 +183,6 @@ bool PeerServer::addFile(const fs::path& fromPath) {
     fs::path destinationFile = workingDir / (newFileName + ":" + localName);
     if(!fs::exists(destinationFile)) {
         fs::copy(fromPath, destinationFile);
-        fs::create_directory(workingDir);
         fs::path configFile = workingDir / "config";
         Config::Data data;
         data["files"] = localFiles;

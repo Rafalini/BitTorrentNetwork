@@ -17,7 +17,9 @@ private:
 public:
     static PeerServer *instance();
 
-    void listenAndServe(const std::string &addr, int port);
+    void startServer(const std::string &trackerAddr, int port);
+
+    [[noreturn]] void listenAndServe(int port);
 
     DataAndIp sendHeartbeat(const std::string &trackerAddr, int port);
 
@@ -36,7 +38,7 @@ public:
 
     void unlockLocalFiles();
 
-    std::map<FileDescriptor, std::set<std::string>> transformData(const Config::Data &);
+    std::map<FileDescriptor, std::set<std::string>> transformData();
 
     enum class DownloadResult {
         DOWNLOAD_OK = 0,
@@ -49,11 +51,11 @@ public:
     std::string getMyAddr();
 private:
     std::string myAddr;
-    int chunkSize = 1024; //bytes
+    const int chunkSize = 1024; //size of one chunk of data that is send during file download
     void startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
-    void startUploadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
+    void handleDownloadRequest(int msgSocket, const std::string &clientIP);
     std::string localName = "localhost";
-    Config::Data data;
+    Config::Data data; //std::map<std::string, std::set<FileDescriptor>>
     std::set<FileDescriptor> localFiles;
     void sendHeartbeatPeriodically(const std::string &trackerAddr, int port, unsigned int interval);
     bool running = true;

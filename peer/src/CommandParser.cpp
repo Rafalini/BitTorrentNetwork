@@ -61,8 +61,8 @@ void CommandsParser::listCommands(const vector<string>& commands) {
 void CommandsParser::listFiles() {
     out << "Files available to download:\n";
     peerServer.lockData();
-    auto data = peerServer.getData();
-    auto dataTransformed = peerServer.transformData(data);
+//    auto data = peerServer.getData();
+    auto dataTransformed = peerServer.transformData();
     peerServer.unlockData();
     for(auto& [file, owners] : dataTransformed )
         out << file.filename  << "(" << file.owner  << "): from " << owners.size() << " sources\n";

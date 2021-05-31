@@ -28,6 +28,7 @@ struct FileDescriptor {
 
 class Config {
 public:
+                             //peerIP, descryptor -> (filename, ownerIP)
     using Data = std::map<std::string, std::set<FileDescriptor>>;
     using path = pt::ptree::path_type;
 
