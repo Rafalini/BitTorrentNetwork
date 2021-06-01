@@ -22,9 +22,9 @@ PeerServer::DownloadResult PeerClient::startDownloadingFile(const std::pair<File
     fs::path workingDir = fs::current_path() / "bittorrent";
     fs::path destinationFile = workingDir / (file.first.filename + ":" + file.first.owner);
 
-    long bytesOwned = bytesAlreadyOwned(destinationFile);                  //check if there is some of that file
-    sendMsg(socket,std::to_string(bytesOwned));                        //send offset of required data
-    std::cout << "Requesting "<<bytesToDownload<<" bytes of data download"<<std::endl;
+    long bytesOwned = bytesAlreadyOwned(destinationFile);                    //check if there is some of that file
+    sendMsg(socket,std::to_string(bytesOwned));                              //send offset of required data
+    std::cout << "Requesting "<<bytesToDownload-bytesOwned<<" bytes of data download"<<std::endl;
     std::cout << "Having "<<bytesOwned<<" bytes already here"<<std::endl;
 
     bytesToDownload -= bytesOwned;

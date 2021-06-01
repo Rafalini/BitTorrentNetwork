@@ -131,6 +131,7 @@ void PeerServer::handleDownloadRequest(int msgSocket) //upload file
     long offset = 0;
     offset = std::atol(readMsg(msgSocket).c_str());      //if client has some part of that file, set offset
     std::cout << "client has already: "<<offset<<std::endl;
+    bytesToUpload -= offset;
 
     for(int i=0; bytesToUpload>0; ++i) {
         ifstream input(destinationFile, ios::binary);
@@ -144,7 +145,7 @@ void PeerServer::handleDownloadRequest(int msgSocket) //upload file
         usleep(1000*300);                           //microseconds -- delay
         bytesToUpload -= (long) input.gcount();
     }
-    std::cout << "Uploaded "<< fileSize(destinationFile) <<" bytes";
+    std::cout << "Uploaded "<< bytesToUpload <<" bytes";
     std::cout << std::endl<<":~$ ";
 }
 
