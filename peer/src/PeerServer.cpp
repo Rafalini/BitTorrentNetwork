@@ -121,34 +121,40 @@ void PeerServer::handleDownloadRequest(int msgSocket) //upload file
     std::string fileName = readMsg(msgSocket);
 
     std::cout<<std::endl<<"Received download request for: "<<fileName<<std::endl;
-
     fs::path workingDir = fs::current_path() / "bittorrent";
     fs::path destinationFile = workingDir / (fileName + ":" + localName);
 
-    long bytesToUpload = fileSize(destinationFile);
-    sendMsg(msgSocket, std::to_string(bytesToUpload));
+    long bytesToUpload = fileSize(destinationFile);     //get file size
+    sendMsg(msgSocket, std::to_string(bytesToUpload)); //send file size
+    if(bytesToUpload<0) return;                             //no such file found, client will know that too
+
+    long offset = 0;
+    offset = std::atol(readMsg(msgSocket).c_str());      //if client has some part of that file, set offset
+    std::cout << "client has already: "<<offset<<std::endl;
 
     for(int i=0; bytesToUpload>0; ++i) {
         ifstream input(destinationFile, ios::binary);
-
-        input.seekg(i*chunkSize, ios_base::beg); //move to last unread chunk
-
-        std::string line(chunkSize,{0});
+        input.seekg(offset+i*chunkSize, ios_base::beg);     //move to last unread chunk
+        std::string line(chunkSize,{0});                 //prepare buffer
         input.read(&line[0], line.length());
-        line.resize(input.gcount());             //if less bytes were red than chunkSize, cut cline to fit
+        line.resize(input.gcount());                         //if less bytes were red than chunkSize, cut cline to fit
 
         sendMsg(msgSocket, line);
         input.close();
-        usleep(1000*300); //microseconds
+        usleep(1000*300);                           //microseconds -- delay
         bytesToUpload -= (long) input.gcount();
     }
-    std::cout << "Uploaded "<< fileSize(destinationFile) <<" bytes"<< std::endl<< ":~$ ";
+    std::cout << "Uploaded "<< fileSize(destinationFile) <<" bytes";
+    std::cout << std::endl<<":~$ ";
 }
 
 long PeerServer::fileSize(std::filesystem::path file)
 {
     std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
-    return in.tellg();
+    if(!in.is_open())
+        return -1;
+    else
+        return in.tellg();
 }
 
 std::map<FileDescriptor, std::set<std::string>> PeerServer::transformData() {
