@@ -27,7 +27,14 @@ PeerServer::DownloadResult PeerClient::startDownloadingFile(const std::pair<File
     std::cout << "Requesting "<<bytesToDownload-bytesOwned<<" bytes of data download"<<std::endl;
     std::cout << "Having "<<bytesOwned<<" bytes already here"<<std::endl;
 
-    bytesToDownload -= bytesOwned;
+    downloadNBytes(socket, bytesToDownload-bytesOwned, destinationFile);
+
+    PeerServer::instance()->addFile(destinationFile);
+    return PeerServer::DownloadResult::DOWNLOAD_OK;
+}
+
+void PeerClient::downloadNBytes(int socket, long bytesToDownload, fs::path destinationFile)
+{
     progressbar bar(bytesToDownload);
     for(int i=0; i<bytesToDownload;){
         std::ofstream output(destinationFile, std::ios::binary | std::ofstream::app);
@@ -38,9 +45,6 @@ PeerServer::DownloadResult PeerClient::startDownloadingFile(const std::pair<File
         i += (long) line.length();
         bar.update();
     }
-    std::cout<<std::endl;
-    PeerServer::instance()->addFile(destinationFile);
-    return PeerServer::DownloadResult::DOWNLOAD_OK;
 }
 
 long PeerClient::bytesAlreadyOwned(std::filesystem::path file)

@@ -116,23 +116,30 @@ PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, cons
     }
 }
 
-void PeerServer::handleDownloadRequest(int msgSocket) //upload file
+void PeerServer::handleDownloadRequest(int socket) //upload file
 {
-    std::string fileName = readMsg(msgSocket);
+    std::string fileName = readMsg(socket);
 
     std::cout<<std::endl<<"Received download request for: "<<fileName<<std::endl;
     fs::path workingDir = fs::current_path() / "bittorrent";
     fs::path destinationFile = workingDir / (fileName + ":" + localName);
 
     long bytesToUpload = fileSize(destinationFile);     //get file size
-    sendMsg(msgSocket, std::to_string(bytesToUpload)); //send file size
+    sendMsg(socket, std::to_string(bytesToUpload)); //send file size
     if(bytesToUpload<0) return;                             //no such file found, client will know that too
 
     long offset = 0;
-    offset = std::atol(readMsg(msgSocket).c_str());      //if client has some part of that file, set offset
+    offset = std::atol(readMsg(socket).c_str());      //if client has some part of that file, set offset
     std::cout << "client has already: "<<offset<<std::endl;
-    bytesToUpload -= offset;
 
+    uploadNBytes(socket, bytesToUpload-offset, offset, destinationFile);
+
+    std::cout << "Uploaded "<< bytesToUpload <<" bytes";
+    std::cout << std::endl<<":~$ ";
+}
+
+void PeerServer::uploadNBytes(int socket, long bytesToUpload, long offset, fs::path destinationFile)
+{
     for(int i=0; bytesToUpload>0; ++i) {
         ifstream input(destinationFile, ios::binary);
         input.seekg(offset+i*chunkSize, ios_base::beg);     //move to last unread chunk
@@ -140,13 +147,11 @@ void PeerServer::handleDownloadRequest(int msgSocket) //upload file
         input.read(&line[0], line.length());
         line.resize(input.gcount());                         //if less bytes were red than chunkSize, cut cline to fit
 
-        sendMsg(msgSocket, line);
+        sendMsg(socket, line);
         input.close();
         usleep(1000*300);                           //microseconds -- delay
         bytesToUpload -= (long) input.gcount();
     }
-    std::cout << "Uploaded "<< bytesToUpload <<" bytes";
-    std::cout << std::endl<<":~$ ";
 }
 
 long PeerServer::fileSize(std::filesystem::path file)

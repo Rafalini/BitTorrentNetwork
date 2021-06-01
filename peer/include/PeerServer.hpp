@@ -9,6 +9,7 @@
 #include <ostream>
 #include <filesystem>
 
+namespace fs = std::filesystem;
 
 class PeerServer {
 private:
@@ -54,7 +55,7 @@ private:
     std::string myAddr;
     const int chunkSize = 1; //size of one chunk of data that is send during file download
     long fileSize(std::filesystem::path file);
-//    void startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
+    void uploadNBytes(int socket, long bytesToUpload, long offset, fs::path destinationFile);
     void handleDownloadRequest(int msgSocket);
     std::string localName = "localhost";
     Config::Data data; //std::map<std::string, std::set<FileDescriptor>>
