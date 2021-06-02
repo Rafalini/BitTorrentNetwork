@@ -14,8 +14,10 @@ namespace pt = boost::property_tree;
 struct FileDescriptor {
     std::string filename;
     std::string owner;
+
+    FileDescriptor(std::string f, std::string o):filename(f),owner(o){}
     bool operator<(const FileDescriptor& other) const {
-        return filename < other.filename || filename == other.filename && owner < other.owner;
+        return filename < other.filename || (filename == other.filename && owner < other.owner);
     }
     bool operator==(const FileDescriptor& other) const {
         return filename == other.filename && owner == other.owner;
@@ -28,6 +30,7 @@ struct FileDescriptor {
 
 class Config {
 public:
+                             //peerIP, descryptor -> (filename, ownerIP)
     using Data = std::map<std::string, std::set<FileDescriptor>>;
     using path = pt::ptree::path_type;
 

@@ -1,6 +1,7 @@
 version: "3.3"
 services:
   tracker:
+    container_name: tracker
     build:
       context: .
       dockerfile: ./tracker/Dockerfile
@@ -9,7 +10,9 @@ services:
     networks:
       bittorrent:
         ipv4_address: 192.168.20.10
+#    command: tail -f /dev/null
   peer1:
+    container_name: peer1
     build:
       context: .
       dockerfile: ./peer/Dockerfile
@@ -20,7 +23,9 @@ services:
     networks:
       bittorrent:
         ipv4_address: 192.168.20.11
+#    command: tail -f /dev/null
   peer2:
+    container_name: peer2
     build:
       context: .
       dockerfile: ./peer/Dockerfile
@@ -31,7 +36,9 @@ services:
     networks:
       bittorrent:
         ipv4_address: 192.168.20.12
+#    command: tail -f /dev/null
   peer3:
+    container_name: peer3
     build:
       context: .
       dockerfile: ./peer/Dockerfile
@@ -42,6 +49,7 @@ services:
     networks:
       bittorrent:
         ipv4_address: 192.168.20.13
+#    command: tail -f /dev/null
 networks:
   bittorrent:
     driver: bridge

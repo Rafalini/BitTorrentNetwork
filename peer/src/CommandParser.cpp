@@ -40,13 +40,19 @@ void CommandsParser::downloadFile(istream& args) {
     auto result = peerServer.downloadFile(fileName, owner);
     switch(result) {
         case PeerServer::DownloadResult::DOWNLOAD_OK:
-            out << "Downloading of " << fileName << " has started.\n";
+            out << "Downloading of " << fileName << " done.\n";
             return;
         case PeerServer::DownloadResult::FILE_ALREADY_PRESENT:
             out << "File is already available locally\n";
             return;
         case PeerServer::DownloadResult::FILE_NOT_FOUND:
             out << "File not found\n";
+            return;
+        case PeerServer::DownloadResult::DOWNLOAD_ABORTED:
+            out << "Download aborted\n";
+            return;
+        case PeerServer::DownloadResult::FILE_REVOKED:
+            out << "Download aborted, file revoked\n";
             return;
     }
 }
@@ -61,8 +67,8 @@ void CommandsParser::listCommands(const vector<string>& commands) {
 void CommandsParser::listFiles() {
     out << "Files available to download:\n";
     peerServer.lockData();
-    auto data = peerServer.getData();
-    auto dataTransformed = peerServer.transformData(data);
+//    auto data = peerServer.getData();
+    auto dataTransformed = peerServer.transformData();
     peerServer.unlockData();
     for(auto& [file, owners] : dataTransformed )
         out << file.filename  << "(" << file.owner  << "): from " << owners.size() << " sources\n";
@@ -93,10 +99,12 @@ bool CommandsParser::parseCommand(istream& line) {
 
 void CommandsParser::parseInput() {
     out << "Please type in \"help\" to get the list of commands" << std::endl;
+    std::cout<<PeerServer::instance()->getMyAddr()<<":~$ ";
     string line;
     getline(in, line);
     stringstream lineStringStream(line);
     while(parseCommand(lineStringStream)) {
+        std::cout<<PeerServer::instance()->getMyAddr()<<":~$ ";
         getline(in, line);
         lineStringStream = stringstream(line);
     }

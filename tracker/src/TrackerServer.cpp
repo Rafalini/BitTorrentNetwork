@@ -27,6 +27,7 @@
 }
 
 void TrackerServer::handleRequest(int msgSocket, const std::string &clientIP, const std::string &configName) {
+    std::cout<<"Heartbeat came from: "<<clientIP<<std::endl;
     std::string request = readMsg(msgSocket);
     auto peerFiles = Config::decodePeerSetMsg(request);
 
@@ -46,6 +47,7 @@ void TrackerServer::updateConfig(const std::string& configName, const std::strin
 }
 
 void TrackerServer::loadConfig(const std::string &configName) {
+    std::cout<<"loading config..."<<std::endl;
     try {
         cfg = Config::load(configName);
     } catch (boost::wrapexcept<boost::property_tree::json_parser::json_parser_error> &ex) {
