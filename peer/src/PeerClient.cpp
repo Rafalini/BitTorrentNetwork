@@ -15,9 +15,13 @@ PeerServer::DownloadResult PeerClient::startDownloadingFile(const std::pair<File
 {
     int socket = createListeningClientSocket(file.first.owner, 8080);
 
-    sendMsg(socket,file.first.filename);                                          //send file name to owner
+    sendMsg(socket,file.first.filename+":"+file.first.owner);                                          //send file name to owner
     long bytesToDownload = std::atol(readMsg(socket).c_str());               //recieve file size in bytes
-    if(bytesToDownload<0) return PeerServer::DownloadResult::FILE_NOT_FOUND;
+
+    if(bytesToDownload == (int)PeerServer::DownloadResult::FILE_REVOKED)
+        return PeerServer::DownloadResult::FILE_REVOKED;
+    if(bytesToDownload == (int)PeerServer::DownloadResult::FILE_NOT_FOUND)
+        return PeerServer::DownloadResult::FILE_NOT_FOUND;
 
     fs::path workingDir = fs::current_path() / "bittorrent";
     fs::path destinationFile = workingDir / (file.first.filename + ":" + file.first.owner);
@@ -28,7 +32,6 @@ PeerServer::DownloadResult PeerClient::startDownloadingFile(const std::pair<File
     std::cout << "Having "<<bytesOwned<<" bytes already here"<<std::endl;
 
     downloadNBytes(socket, bytesToDownload-bytesOwned, destinationFile);
-
     PeerServer::instance()->addFile(destinationFile);
     return PeerServer::DownloadResult::DOWNLOAD_OK;
 }

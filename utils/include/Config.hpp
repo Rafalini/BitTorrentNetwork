@@ -14,6 +14,8 @@ namespace pt = boost::property_tree;
 struct FileDescriptor {
     std::string filename;
     std::string owner;
+
+    FileDescriptor(std::string f, std::string o):filename(f),owner(o){}
     bool operator<(const FileDescriptor& other) const {
         return filename < other.filename || (filename == other.filename && owner < other.owner);
     }

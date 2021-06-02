@@ -116,16 +116,33 @@ PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, cons
     }
 }
 
+FileDescriptor PeerServer::getDescriptor(std::string fileId){
+    std::stringstream test(fileId);
+    std::string segment;
+    std::vector<std::string> parts;
+
+    while(std::getline(test, segment, ':'))
+        parts.push_back(segment);
+
+    return FileDescriptor(parts[0],parts[1]);
+}
+
 void PeerServer::handleDownloadRequest(int socket) //upload file
 {
-    std::string fileName = readMsg(socket);
+    std::string fileId = readMsg(socket);
+    FileDescriptor fileToDownload =  getDescriptor(fileId);
 
-    std::cout<<std::endl<<"Received download request for: "<<fileName<<std::endl;
+    std::cout<<std::endl<<"Received download request for: "<<fileToDownload.filename<<std::endl;
     fs::path workingDir = fs::current_path() / "bittorrent";
-    fs::path destinationFile = workingDir / (fileName + ":" + localName);
+    fs::path destinationFile = workingDir / fileId;
+
+    if(isFileRevoked()) {
+        sendMsg(socket,std::to_string((int)PeerServer::DownloadResult::FILE_REVOKED));
+        return;
+    }
 
     long bytesToUpload = fileSize(destinationFile);     //get file size
-    sendMsg(socket, std::to_string(bytesToUpload)); //send file size
+    sendMsg(socket, std::to_string(bytesToUpload));    //send file size
     if(bytesToUpload<0) return;                             //no such file found, client will know that too
 
     long offset = 0;
@@ -133,7 +150,6 @@ void PeerServer::handleDownloadRequest(int socket) //upload file
     std::cout << "client has already: "<<offset<<std::endl;
 
     uploadNBytes(socket, bytesToUpload-offset, offset, destinationFile);
-
     std::cout << "Uploaded "<< bytesToUpload <<" bytes";
     std::cout << std::endl<<":~$ ";
 }
@@ -218,4 +234,9 @@ bool PeerServer::addFile(const fs::path& fromPath) {
     }
     unlockLocalFiles();
     return true;
+}
+
+bool PeerServer::isFileRevoked()
+{
+    return false;
 }
