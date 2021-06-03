@@ -32,7 +32,7 @@ PeerServer::DownloadResult PeerClient::startDownloadingFile(const std::pair<File
     std::cout << "Having "<<bytesOwned<<" bytes already here"<<std::endl;
 
     downloadNBytes(socket, bytesToDownload-bytesOwned, destinationFile);
-    PeerServer::instance()->addFile(destinationFile);
+    PeerServer::instance()->addRemoteFile({file.first.filename, file.first.owner});
     return PeerServer::DownloadResult::DOWNLOAD_OK;
 }
 

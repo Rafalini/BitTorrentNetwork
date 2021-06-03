@@ -158,8 +158,13 @@ void PeerServer::uploadNBytes(int socket, long bytesToUpload, long offset, fs::p
 {
     for(int i=0; bytesToUpload>0; ++i) {
         ifstream input(destinationFile, ios::binary);
-        input.seekg(offset+i*chunkSize, ios_base::beg);     //move to last unread chunk
-        std::string line(chunkSize,{0});                 //prepare buffer
+        input.seekg(offset+i, ios_base::beg);     //move to last unread chunk
+
+        long nextChunkSize = chunkSize;
+        if(nextChunkSize + i > bytesToUpload)
+            nextChunkSize = bytesToUpload - i;
+
+        std::string line(nextChunkSize,{0});                 //prepare buffer
         input.read(&line[0], line.length());
         line.resize(input.gcount());                         //if less bytes were red than chunkSize, cut cline to fit
 
@@ -215,13 +220,36 @@ DataAndIp PeerServer::sendHeartbeat(const std::string& trackerAddr, int port) {
 
 std::string PeerServer::getMyAddr() {return myAddr;}
 
+bool PeerServer::addRemoteFile(const FileDescriptor& file) {
+    lockLocalFiles();
+    if(localFiles.find(file) != localFiles.end()) {
+        unlockLocalFiles();
+        return false;
+    }
+    localFiles.insert(file);
+    fs::path workingDir = fs::current_path() / "bittorrent";
+    fs::create_directory(workingDir);
+    fs::path destinationFile = workingDir / (file.filename + ":" + file.owner);
+    if(!fs::exists(destinationFile)) {
+        fs::path configFile = workingDir / "config";
+        Config::Data data;
+        data["files"] = localFiles;
+        Config::encodeConfig(data);
+        Config::save(configFile, data);
+    }
+    unlockLocalFiles();
+    return true;
+}
+
 bool PeerServer::addFile(const fs::path& fromPath) {
     string newFileName = fromPath.filename();
     fs::path workingDir = fs::current_path() / "bittorrent";
     fs::create_directory(workingDir);
     lockLocalFiles();
-    if(localFiles.find({newFileName, localName}) != localFiles.end())
+    if(localFiles.find({newFileName, localName}) != localFiles.end()) {
+        unlockLocalFiles();
         return false;
+    }
     localFiles.insert({newFileName, localName});
     fs::path destinationFile = workingDir / (newFileName + ":" + localName);
     if(!fs::exists(destinationFile)) {

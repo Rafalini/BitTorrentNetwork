@@ -3,6 +3,11 @@
 /build
 cmake-build-debug
 bittorrent
+debug/
+peer/peer
+rebuild.sh
+tracker/tracker
+
 # Prerequisites
 *.d
 

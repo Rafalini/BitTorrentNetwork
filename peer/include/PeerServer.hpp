@@ -52,9 +52,10 @@ public:
     void updateData(const Config::Data& data);
     bool addFile(const std::filesystem::path &fromPath);
     std::string getMyAddr();
+    bool addRemoteFile(const FileDescriptor& file);
 private:
     std::string myAddr;
-    const int chunkSize = 1; //size of one chunk of data that is send during file download
+    const int chunkSize = 1024; //size of one chunk of data that is send during file download
 
     FileDescriptor getDescriptor(std::string fileId);
     std::string localName = "localhost";

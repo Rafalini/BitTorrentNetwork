@@ -10,9 +10,14 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
             {"list-files", [this](istream &restOfLine) { listFiles(); }},
             {"list-local-files", [this](istream &restOfLine) { listLocalFiles(peerServer.getLocalFiles()); }},
             {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }},
-            {"download-file", [this](istream &restOfLine) { downloadFile(restOfLine); }}
+            {"download-file", [this](istream &restOfLine) { downloadFile(restOfLine); }},
+            {"delete-file", [this](istream &restOfLine){}},
+            {"stop-downloading-file", [this](istream &restOfLine){}},
+            {"check-download-progress", [this](istream &restOfLine){}}
     };
-    knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path", "download-file filename [original_owner]"};
+    knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path", "download-file filename [original_owner]",
+                     "delete-file filename [original_owner]", "stop-downloading-file filename [original_owner]",
+                     "check-download-progress filename [original_owner]"};
 }
 
 void CommandsParser::addFile(istream& args) {
@@ -71,7 +76,7 @@ void CommandsParser::listFiles() {
     auto dataTransformed = peerServer.transformData();
     peerServer.unlockData();
     for(auto& [file, owners] : dataTransformed )
-        out << file.filename  << "(" << file.owner  << "): from " << owners.size() << " sources\n";
+        out << file.filename << "(" << file.owner  << "): from " << owners.size() << " sources\n";
 }
 
 void CommandsParser::listLocalFiles(const std::set<FileDescriptor>& files) {
