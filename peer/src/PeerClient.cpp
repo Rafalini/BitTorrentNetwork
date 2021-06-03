@@ -5,6 +5,7 @@
 #include <SocketUtils.hpp>
 #include <iostream>
 #include <fstream>
+#include <thread>
 #include <filesystem>
 #include <PeerServer.hpp>
 #include "CustomUtils.hpp"
@@ -31,8 +32,11 @@ PeerServer::DownloadResult PeerClient::startDownloadingFile(const std::pair<File
     std::cout << "Requesting "<<bytesToDownload-bytesOwned<<" bytes of data download"<<std::endl;
     std::cout << "Having "<<bytesOwned<<" bytes already here"<<std::endl;
 
-    downloadNBytes(socket, bytesToDownload-bytesOwned, destinationFile);
-    PeerServer::instance()->addRemoteFile({file.first.filename, file.first.owner});
+    std::thread([file, socket, bytesToDownload, bytesOwned, destinationFile] {
+        downloadNBytes(socket, bytesToDownload-bytesOwned, destinationFile);
+        PeerServer::instance()->addRemoteFile({file.first.filename, file.first.owner});
+    }).detach();
+
     return PeerServer::DownloadResult::DOWNLOAD_OK;
 }
 

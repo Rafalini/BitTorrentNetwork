@@ -68,6 +68,21 @@ void PeerServer::startServer(const std::string &trackerAddr, int port)
 //update local information about files
 void PeerServer::updateData(const Config::Data& newData) {
     lockData();
+    // iterate local files, for each check if their owner didn't delete them
+    lockLocalFiles();
+    std::set<FileDescriptor> filesToDelete;
+    for(auto& fileDescriptor : localFiles) {
+        auto& owner = fileDescriptor.owner;
+        auto fileOwnerFiles = newData.find(owner);
+        if(fileOwnerFiles != newData.end()) {
+            auto& files = fileOwnerFiles->second;
+            if(std::find(files.begin(), files.end(), fileDescriptor) == files.end())
+                filesToDelete.insert(fileDescriptor);
+        }
+    }
+    for(auto& fileToDelete : filesToDelete)
+        deleteFile(fileToDelete);
+    unlockLocalFiles();
     if(data != newData) {
         data = newData;
     }
@@ -262,6 +277,24 @@ bool PeerServer::addFile(const fs::path& fromPath) {
     }
     unlockLocalFiles();
     return true;
+}
+
+void PeerServer::deleteFile(const FileDescriptor& fileDescriptor) {
+    string fileNameToDelete = fileDescriptor.filename + ":" + fileDescriptor.owner;
+    fs::path workingDir = fs::current_path() / "bittorrent";
+    fs::path fileToDelete = workingDir / fileNameToDelete;
+    if(localFiles.find(fileDescriptor) == localFiles.end()) {
+        return;
+    }
+    localFiles.erase(fileDescriptor);
+    if(fs::exists(fileToDelete)) {
+        fs::remove(fileToDelete);
+    }
+    fs::path configFile = workingDir / "config";
+    Config::Data data;
+    data["files"] = localFiles;
+    Config::encodeConfig(data);
+    Config::save(configFile, data);
 }
 
 bool PeerServer::isFileRevoked()

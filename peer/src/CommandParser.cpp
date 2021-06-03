@@ -11,7 +11,7 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
             {"list-local-files", [this](istream &restOfLine) { listLocalFiles(peerServer.getLocalFiles()); }},
             {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }},
             {"download-file", [this](istream &restOfLine) { downloadFile(restOfLine); }},
-            {"delete-file", [this](istream &restOfLine){}},
+            {"delete-file", [this](istream &restOfLine){ deleteFile(restOfLine); }},
             {"stop-downloading-file", [this](istream &restOfLine){}},
             {"check-download-progress", [this](istream &restOfLine){}}
     };
@@ -38,7 +38,6 @@ void CommandsParser::addFile(istream& args) {
         out << "File was already added\n";
 }
 
-
 void CommandsParser::downloadFile(istream& args) {
     string fileName, owner;
     args >> fileName >> owner;
@@ -60,6 +59,33 @@ void CommandsParser::downloadFile(istream& args) {
             out << "Download aborted, file revoked\n";
             return;
     }
+}
+
+void CommandsParser::deleteFile(istream& args) {
+    string filename;
+    args >> filename;
+    if(filename.empty()) {
+        out << "Error: Path to file to delete not provided.\n";
+        return;
+    }
+    string owner;
+    args >> owner;
+    peerServer.lockLocalFiles();
+    auto fileDescriptor = std::find_if(peerServer.getLocalFiles().begin(),
+                                        peerServer.getLocalFiles().end(),
+                                        [&filename, &owner](const FileDescriptor& fileDescriptor){
+                                            return fileDescriptor.filename == filename &&
+                                            (owner.empty() || fileDescriptor.owner == owner);
+                                        } );
+    peerServer.unlockLocalFiles();
+    if(fileDescriptor == peerServer.getLocalFiles().end()) {
+        out << "Error: File to delete doesn't exist\n";
+        return;
+    }
+    peerServer.lockLocalFiles();
+    peerServer.deleteFile(*fileDescriptor);
+    peerServer.unlockLocalFiles();
+    out << filename << " deleted\n";
 }
 
 void CommandsParser::listCommands(const vector<string>& commands) {

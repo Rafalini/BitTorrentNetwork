@@ -51,6 +51,7 @@ public:
     DownloadResult downloadFile(const std::string& fileName, const std::string& owner);
     void updateData(const Config::Data& data);
     bool addFile(const std::filesystem::path &fromPath);
+    void deleteFile(const FileDescriptor& fileDescriptor);
     std::string getMyAddr();
     bool addRemoteFile(const FileDescriptor& file);
 private:
