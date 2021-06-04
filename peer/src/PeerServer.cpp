@@ -1,5 +1,4 @@
 #include "PeerServer.hpp"
-#include "PeerClient.hpp"
 
 #include "TrackerClient.hpp"
 #include <SocketUtils.hpp>
@@ -8,9 +7,12 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <CustomUtils.hpp>
+
 constexpr int HEARTBEAT_INTERVAL = 10;
 
 using namespace std;
@@ -41,6 +43,12 @@ void PeerServer::lockLocalFiles() {
 }
 void PeerServer::unlockLocalFiles() {
     fileNamesMutex.unlock();
+}
+void PeerServer::lockDownloadingFiles() {
+    downloadingFilesMutex.lock();
+}
+void PeerServer::unlockDownloadingFiles() {
+    downloadingFilesMutex.unlock();
 }
 
 PeerServer::PeerServer() {
@@ -89,6 +97,86 @@ void PeerServer::updateData(const Config::Data& newData) {
     unlockData();
 }
 
+PeerServer::DownloadResult PeerServer::startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file)
+{
+    int socket = createListeningClientSocket(file.first.owner, 8080);
+
+    sendMsg(socket,file.first.filename+":"+file.first.owner);                                          //send file name to owner
+    long bytesToDownload = std::atol(readMsg(socket).c_str());               //recieve file size in bytes
+
+    if(bytesToDownload == (int)PeerServer::DownloadResult::FILE_REVOKED)
+        return DownloadResult::FILE_REVOKED;
+    if(bytesToDownload == (int)PeerServer::DownloadResult::FILE_NOT_FOUND)
+        return DownloadResult::FILE_NOT_FOUND;
+
+    fs::path workingDir = fs::current_path() / "bittorrent";
+    fs::path destinationFile = workingDir / (file.first.filename + ":" + file.first.owner);
+
+    long bytesOwned = bytesAlreadyOwned(destinationFile);                    //check if there is some of that file
+    sendMsg(socket,std::to_string(bytesOwned));                              //send offset of required data
+    std::cout << "Requesting "<<bytesToDownload-bytesOwned<<" bytes of data download"<<std::endl;
+    std::cout << "Having "<<bytesOwned<<" bytes already here"<<std::endl;
+
+    lockDownloadingFiles();
+    downloadingFiles.push_back({file.first, bytesOwned, bytesToDownload});
+    unlockDownloadingFiles();
+
+    std::thread([file, socket, bytesToDownload, bytesOwned, destinationFile, this] {
+        bool result = downloadNBytes(socket, bytesToDownload-bytesOwned, destinationFile, file.first);
+        if(result)
+            PeerServer::instance()->addRemoteFile({file.first.filename, file.first.owner});
+        else
+            fs::remove(destinationFile);
+    }).detach();
+
+    return DownloadResult::DOWNLOAD_OK;
+}
+
+bool PeerServer::downloadNBytes(int socket, long bytesToDownload, fs::path destinationFile, const FileDescriptor& file)
+{
+    //progressbar bar(bytesToDownload);
+    for(long i=0; i<bytesToDownload;){
+        std::string line = readMsg(socket);
+        std::ofstream output(destinationFile, std::ios::binary | std::ofstream::app);
+        output << line;
+        output.close();
+
+        i += (long) line.length();
+
+        lockDownloadingFiles();
+        auto downloadingFile = std::find_if(downloadingFiles.begin(),
+                                           downloadingFiles.end(),
+                                           [file](const auto& fileDescriptor){
+                                               return file.filename == std::get<0>(fileDescriptor).filename &&
+                                                      (file.owner.empty() || std::get<0>(fileDescriptor).owner == file.owner);
+                                           } );
+        if(downloadingFile != downloadingFiles.end()){
+            std::get<1>(*downloadingFile) = i;
+        }
+        else{
+            unlockDownloadingFiles();
+            return false;
+        }
+        unlockDownloadingFiles();
+        //bar.update();
+    }
+    lockDownloadingFiles();
+    downloadingFiles.erase(std::remove(
+            downloadingFiles.begin(), downloadingFiles.end(),
+            std::tuple<FileDescriptor, long, long>(file, bytesToDownload,bytesToDownload)), downloadingFiles.end());
+    unlockDownloadingFiles();
+    return true;
+}
+
+long PeerServer::bytesAlreadyOwned(std::filesystem::path file)
+{
+    std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
+    if(!in.is_open())
+        return 0;
+    else
+        return in.tellg();
+}
+
 PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, const string& owner) {
     lockData();
     auto transformedData = transformData();
@@ -102,12 +190,12 @@ PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, cons
         return DownloadResult::FILE_NOT_FOUND;
     }
     if(foundFiles.size() == 1) {
-        PeerClient::startDownloadingFile(*foundFiles.begin());
+        startDownloadingFile(*foundFiles.begin());
         return DownloadResult::DOWNLOAD_OK;
     }
     for(const auto& file : foundFiles) {
         if(file.first.owner == owner) {
-            PeerClient::startDownloadingFile(file);
+            startDownloadingFile(file);
             return DownloadResult::DOWNLOAD_OK;
         }
     }

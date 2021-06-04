@@ -12,8 +12,8 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
             {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }},
             {"download-file", [this](istream &restOfLine) { downloadFile(restOfLine); }},
             {"delete-file", [this](istream &restOfLine){ deleteFile(restOfLine); }},
-            {"stop-downloading-file", [this](istream &restOfLine){}},
-            {"check-download-progress", [this](istream &restOfLine){}}
+            {"stop-downloading-file", [this](istream &restOfLine){ stopDownloadingFile(restOfLine); }},
+            {"check-download-progress", [this](istream &restOfLine){ checkDownloadProgress(restOfLine); }}
     };
     knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path", "download-file filename [original_owner]",
                      "delete-file filename [original_owner]", "stop-downloading-file filename [original_owner]",
@@ -86,6 +86,41 @@ void CommandsParser::deleteFile(istream& args) {
     peerServer.deleteFile(*fileDescriptor);
     peerServer.unlockLocalFiles();
     out << filename << " deleted\n";
+}
+
+void CommandsParser::stopDownloadingFile(istream& args) {
+    string filename;
+    args >> filename;
+    string owner;
+    args >> owner;
+    if(filename.empty()) {
+        out << "Error: Path to file not provided.\n";
+        return;
+    }
+    if(!fs::exists(filename)) {
+        out << "Error: File doesn't exist\n";
+        return;
+    }
+    //peerServer.stopDownloading(filename, owner);
+//    fs::path fromPath(pathToFile);
+//    if(peerServer.addFile(fromPath))
+//        out << fromPath.filename() << " saved\n";
+//    else
+//        out << "File was already added\n";
+}
+
+void CommandsParser::checkDownloadProgress(istream& args) {
+    string filename;
+    args >> filename;
+    if(filename.empty()) {
+        out << "Error: Path to file not provided.\n";
+        return;
+    }
+    if(!fs::exists(filename)) {
+        out << "Error: File doesn't exist\n";
+        return;
+    }
+
 }
 
 void CommandsParser::listCommands(const vector<string>& commands) {

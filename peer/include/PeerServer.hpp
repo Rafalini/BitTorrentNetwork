@@ -5,8 +5,10 @@
 #include <set>
 #include <map>
 #include <mutex>
+#include <vector>
 #include <memory>
 #include <ostream>
+#include <tuple>
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -32,12 +34,13 @@ public:
 
     //synchronization methods
     void lockData();
-
     void unlockData();
 
     void lockLocalFiles();
-
     void unlockLocalFiles();
+
+    void lockDownloadingFiles();
+    void unlockDownloadingFiles();
 
     std::map<FileDescriptor, std::set<std::string>> transformData();
 
@@ -54,7 +57,12 @@ public:
     void deleteFile(const FileDescriptor& fileDescriptor);
     std::string getMyAddr();
     bool addRemoteFile(const FileDescriptor& file);
+
+    long bytesAlreadyOwned(std::filesystem::path file);
+    bool downloadNBytes(int socket, long bytesToDownload, fs::path destinationFile, const FileDescriptor& file);
+    DownloadResult startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
 private:
+    std::vector<std::tuple<FileDescriptor, long, long>> downloadingFiles;
     std::string myAddr;
     const int chunkSize = 1024; //size of one chunk of data that is send during file download
 
@@ -65,6 +73,7 @@ private:
 
     bool running = true;
     std::mutex fileNamesMutex;
+    std::mutex downloadingFilesMutex;
     std::mutex dataMutex;
     static std::mutex singletonMutex;
     static std::unique_ptr<PeerServer> peerServer;
