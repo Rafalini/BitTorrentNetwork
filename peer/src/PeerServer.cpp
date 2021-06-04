@@ -10,8 +10,6 @@
 #include <algorithm>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <unistd.h>
-#include <CustomUtils.hpp>
 
 constexpr int HEARTBEAT_INTERVAL = 10;
 
@@ -48,6 +46,13 @@ void PeerServer::lockDownloadingFiles() {
     downloadingFilesMutex.lock();
 }
 void PeerServer::unlockDownloadingFiles() {
+    downloadingFilesMutex.unlock();
+}
+
+void PeerServer::lockCheckDownloadProgress() {
+    downloadingFilesMutex.lock();
+}
+void PeerServer::unlockCheckDownloadProgress() {
     downloadingFilesMutex.unlock();
 }
 
@@ -97,6 +102,45 @@ void PeerServer::updateData(const Config::Data& newData) {
     unlockData();
 }
 
+
+bool PeerServer::stopDownloadingFile(const string& filename, const string& owner) {
+    lockDownloadingFiles();
+    auto downloadingFile = std::find_if(downloadingFiles.begin(),
+                                        downloadingFiles.end(),
+                                        [filename, owner](const auto& fileDescriptor){
+                                            return filename == std::get<0>(fileDescriptor).filename &&
+                                                   (owner.empty() || std::get<0>(fileDescriptor).owner == owner);
+                                        } );
+    if(downloadingFile == downloadingFiles.end()) {
+        unlockDownloadingFiles();
+        return false;
+    }
+    downloadingFiles.erase(downloadingFile);
+    unlockDownloadingFiles();
+    return true;
+}
+
+bool PeerServer::checkDownloadProgress(const std::string& fileName, const std::string& owner) {
+    lockCheckDownloadProgress();
+    auto downloadingFile = std::find_if(downloadingFiles.begin(),
+                                        downloadingFiles.end(),
+                                        [fileName, owner](const auto& fileDescriptor){
+                                            return fileName == std::get<0>(fileDescriptor).filename &&
+                                                  (owner.empty() || std::get<0>(fileDescriptor).owner == owner);
+                                        } );
+    if(downloadingFile == downloadingFiles.end()) {
+        unlockCheckDownloadProgress();
+        return false;
+    }
+
+    std::cout << "File: " << (std::get<0>(*downloadingFile)).filename <<
+                ", owner: " << (std::get<0>(*downloadingFile)).owner <<
+                ": downloaded " << std::get<1>(*downloadingFile) <<
+                " bytes of " << std::get<2>(*downloadingFile) << " bytes.\n";
+    unlockCheckDownloadProgress();
+    return true;
+}
+
 PeerServer::DownloadResult PeerServer::startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file)
 {
     int socket = createListeningClientSocket(file.first.owner, 8080);
@@ -105,7 +149,9 @@ PeerServer::DownloadResult PeerServer::startDownloadingFile(const std::pair<File
     long bytesToDownload = std::atol(readMsg(socket).c_str());               //recieve file size in bytes
 
     if(bytesToDownload == (int)PeerServer::DownloadResult::FILE_REVOKED)
-        return DownloadResult::FILE_REVOKED;
+        return DownloadResult::FILE_REVOKED;\
+
+    // FIXME the same error message if file not found locally or remotely
     if(bytesToDownload == (int)PeerServer::DownloadResult::FILE_NOT_FOUND)
         return DownloadResult::FILE_NOT_FOUND;
 
@@ -115,7 +161,7 @@ PeerServer::DownloadResult PeerServer::startDownloadingFile(const std::pair<File
     long bytesOwned = bytesAlreadyOwned(destinationFile);                    //check if there is some of that file
     sendMsg(socket,std::to_string(bytesOwned));                              //send offset of required data
     std::cout << "Requesting "<<bytesToDownload-bytesOwned<<" bytes of data download"<<std::endl;
-    std::cout << "Having "<<bytesOwned<<" bytes already here"<<std::endl;
+    std::cout << "Having "<< bytesOwned <<" bytes already here"<<std::endl;
 
     lockDownloadingFiles();
     downloadingFiles.push_back({file.first, bytesOwned, bytesToDownload});
@@ -123,8 +169,10 @@ PeerServer::DownloadResult PeerServer::startDownloadingFile(const std::pair<File
 
     std::thread([file, socket, bytesToDownload, bytesOwned, destinationFile, this] {
         bool result = downloadNBytes(socket, bytesToDownload-bytesOwned, destinationFile, file.first);
-        if(result)
+        if(result) {
             PeerServer::instance()->addRemoteFile({file.first.filename, file.first.owner});
+            std::cout << "Downloading finished for " << destinationFile.filename() << std::endl;
+        }
         else
             fs::remove(destinationFile);
     }).detach();
@@ -134,8 +182,8 @@ PeerServer::DownloadResult PeerServer::startDownloadingFile(const std::pair<File
 
 bool PeerServer::downloadNBytes(int socket, long bytesToDownload, fs::path destinationFile, const FileDescriptor& file)
 {
-    //progressbar bar(bytesToDownload);
     for(long i=0; i<bytesToDownload;){
+        sleep(4);
         std::string line = readMsg(socket);
         std::ofstream output(destinationFile, std::ios::binary | std::ofstream::app);
         output << line;
@@ -158,7 +206,6 @@ bool PeerServer::downloadNBytes(int socket, long bytesToDownload, fs::path desti
             return false;
         }
         unlockDownloadingFiles();
-        //bar.update();
     }
     lockDownloadingFiles();
     downloadingFiles.erase(std::remove(
@@ -190,13 +237,37 @@ PeerServer::DownloadResult PeerServer::downloadFile(const string& fileName, cons
         return DownloadResult::FILE_NOT_FOUND;
     }
     if(foundFiles.size() == 1) {
-        startDownloadingFile(*foundFiles.begin());
-        return DownloadResult::DOWNLOAD_OK;
+        const FileDescriptor fileToDownload(fileName, owner);
+        auto downloadedFile = std::find_if(localFiles.begin(), localFiles.end(), [fileToDownload](const auto& fileDescriptor){
+            return fileToDownload.filename == fileDescriptor.filename &&
+                   (fileToDownload.owner.empty() || fileDescriptor.owner == fileToDownload.owner);
+        } );
+        if(downloadedFile != localFiles.end())
+            return DownloadResult::FILE_ALREADY_PRESENT;
+        auto downloadingFile = std::find_if(downloadingFiles.begin(), downloadingFiles.end(), [fileToDownload](const auto& fileDescriptor){
+            return fileToDownload.filename == std::get<0>(fileDescriptor).filename &&
+                   (fileToDownload.owner.empty() || std::get<0>(fileDescriptor).owner == fileToDownload.owner);
+        } );
+        if(downloadingFile != downloadingFiles.end())
+            return DownloadResult::FILE_ALREADY_BEING_DOWNLOADED;
+        return startDownloadingFile(*foundFiles.begin());
     }
     for(const auto& file : foundFiles) {
         if(file.first.owner == owner) {
-            startDownloadingFile(file);
-            return DownloadResult::DOWNLOAD_OK;
+            const FileDescriptor fileToDownload = FileDescriptor(fileName, owner);
+            auto downloadedFile = std::find_if(localFiles.begin(), localFiles.end(), [fileToDownload](const auto& fileDescriptor){
+                return fileToDownload.filename == fileDescriptor.filename &&
+                       fileDescriptor.owner == fileToDownload.owner;
+            } );
+            if(downloadedFile != localFiles.end())
+                return DownloadResult::FILE_ALREADY_PRESENT;
+            auto downloadingFile = std::find_if(downloadingFiles.begin(), downloadingFiles.end(), [fileToDownload](const auto& fileDescriptor){
+                return fileToDownload.filename == std::get<0>(fileDescriptor).filename &&
+                       std::get<0>(fileDescriptor).owner == fileToDownload.owner;
+            } );
+            if(downloadingFile != downloadingFiles.end())
+                return DownloadResult::FILE_ALREADY_BEING_DOWNLOADED;
+            return startDownloadingFile(file);
         }
     }
     return DownloadResult::FILE_NOT_FOUND;
@@ -259,13 +330,13 @@ void PeerServer::handleDownloadRequest(int socket) //upload file
 
 void PeerServer::uploadNBytes(int socket, long bytesToUpload, long offset, fs::path destinationFile)
 {
-    for(int i=0; bytesToUpload>0; ++i) {
+    for(long i=offset; i < bytesToUpload;) {
         ifstream input(destinationFile, ios::binary);
-        input.seekg(offset+i, ios_base::beg);     //move to last unread chunk
+        input.seekg(offset + i, ios_base::beg);     //move to last unread chunk
 
         long nextChunkSize = chunkSize;
-        if(nextChunkSize + i > bytesToUpload)
-            nextChunkSize = bytesToUpload - i;
+        if(nextChunkSize > bytesToUpload)
+            nextChunkSize = bytesToUpload;
 
         std::string line(nextChunkSize,{0});                 //prepare buffer
         input.read(&line[0], line.length());
@@ -274,7 +345,7 @@ void PeerServer::uploadNBytes(int socket, long bytesToUpload, long offset, fs::p
         sendMsg(socket, line);
         input.close();
         usleep(1000*300);                           //microseconds -- delay
-        bytesToUpload -= (long) input.gcount();
+        i += (long) input.gcount();
     }
 }
 

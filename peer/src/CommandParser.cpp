@@ -44,7 +44,7 @@ void CommandsParser::downloadFile(istream& args) {
     auto result = peerServer.downloadFile(fileName, owner);
     switch(result) {
         case PeerServer::DownloadResult::DOWNLOAD_OK:
-            out << "Downloading of " << fileName << " done.\n";
+            out << "Downloading of " << fileName << " has begun.\n";
             return;
         case PeerServer::DownloadResult::FILE_ALREADY_PRESENT:
             out << "File is already available locally\n";
@@ -57,6 +57,9 @@ void CommandsParser::downloadFile(istream& args) {
             return;
         case PeerServer::DownloadResult::FILE_REVOKED:
             out << "Download aborted, file revoked\n";
+            return;
+        case PeerServer::DownloadResult::FILE_ALREADY_BEING_DOWNLOADED:
+            out << "This file is already being downloaded\n";
             return;
     }
 }
@@ -97,29 +100,24 @@ void CommandsParser::stopDownloadingFile(istream& args) {
         out << "Error: Path to file not provided.\n";
         return;
     }
-    if(!fs::exists(filename)) {
-        out << "Error: File doesn't exist\n";
-        return;
+    if(peerServer.stopDownloadingFile(filename, owner)) {
+        out << "Stopped downloading " << filename << "\n";
+    } else {
+        out << "Nothing to stop\n";
     }
-    //peerServer.stopDownloading(filename, owner);
-//    fs::path fromPath(pathToFile);
-//    if(peerServer.addFile(fromPath))
-//        out << fromPath.filename() << " saved\n";
-//    else
-//        out << "File was already added\n";
 }
 
 void CommandsParser::checkDownloadProgress(istream& args) {
     string filename;
     args >> filename;
+    string owner;
+    args >> owner;
     if(filename.empty()) {
         out << "Error: Path to file not provided.\n";
         return;
     }
-    if(!fs::exists(filename)) {
-        out << "Error: File doesn't exist\n";
-        return;
-    }
+    if (!peerServer.checkDownloadProgress(filename, owner))
+        out << "Error: There is no such file in the process of downloading.\n";
 
 }
 

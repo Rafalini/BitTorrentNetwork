@@ -42,6 +42,9 @@ public:
     void lockDownloadingFiles();
     void unlockDownloadingFiles();
 
+    void lockCheckDownloadProgress();
+    void unlockCheckDownloadProgress();
+
     std::map<FileDescriptor, std::set<std::string>> transformData();
 
     enum class DownloadResult {
@@ -49,7 +52,8 @@ public:
         FILE_NOT_FOUND = -1,
         DOWNLOAD_OK = 0,
         FILE_ALREADY_PRESENT,
-        DOWNLOAD_ABORTED
+        DOWNLOAD_ABORTED,
+        FILE_ALREADY_BEING_DOWNLOADED
     };
     DownloadResult downloadFile(const std::string& fileName, const std::string& owner);
     void updateData(const Config::Data& data);
@@ -61,10 +65,12 @@ public:
     long bytesAlreadyOwned(std::filesystem::path file);
     bool downloadNBytes(int socket, long bytesToDownload, fs::path destinationFile, const FileDescriptor& file);
     DownloadResult startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
+    bool stopDownloadingFile(const std::string& fileName, const std::string& owner);
+    bool checkDownloadProgress(const std::string& fileName, const std::string& owner);
 private:
     std::vector<std::tuple<FileDescriptor, long, long>> downloadingFiles;
     std::string myAddr;
-    const int chunkSize = 1024; //size of one chunk of data that is send during file download
+    const int chunkSize = 30;//1024; //size of one chunk of data that is send during file download
 
     FileDescriptor getDescriptor(std::string fileId);
     std::string localName = "localhost";
