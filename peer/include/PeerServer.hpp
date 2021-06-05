@@ -5,8 +5,10 @@
 #include <set>
 #include <map>
 #include <mutex>
+#include <vector>
 #include <memory>
 #include <ostream>
+#include <tuple>
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -32,12 +34,16 @@ public:
 
     //synchronization methods
     void lockData();
-
     void unlockData();
 
     void lockLocalFiles();
-
     void unlockLocalFiles();
+
+    void lockDownloadingFiles();
+    void unlockDownloadingFiles();
+
+    void lockCheckDownloadProgress();
+    void unlockCheckDownloadProgress();
 
     std::map<FileDescriptor, std::set<std::string>> transformData();
 
@@ -46,15 +52,25 @@ public:
         FILE_NOT_FOUND = -1,
         DOWNLOAD_OK = 0,
         FILE_ALREADY_PRESENT,
-        DOWNLOAD_ABORTED
+        DOWNLOAD_ABORTED,
+        FILE_ALREADY_BEING_DOWNLOADED
     };
     DownloadResult downloadFile(const std::string& fileName, const std::string& owner);
     void updateData(const Config::Data& data);
     bool addFile(const std::filesystem::path &fromPath);
+    void deleteFile(const FileDescriptor& fileDescriptor);
     std::string getMyAddr();
+    bool addRemoteFile(const FileDescriptor& file);
+
+    long bytesAlreadyOwned(std::filesystem::path file);
+    bool downloadNBytes(int socket, long bytesToDownload, fs::path destinationFile, const FileDescriptor& file);
+    DownloadResult startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file);
+    bool stopDownloadingFile(const std::string& fileName, const std::string& owner);
+    bool checkDownloadProgress(const std::string& fileName, const std::string& owner);
 private:
+    std::vector<std::tuple<FileDescriptor, long, long>> downloadingFiles;
     std::string myAddr;
-    const int chunkSize = 1; //size of one chunk of data that is send during file download
+    const int chunkSize = 30;//1024; //size of one chunk of data that is send during file download
 
     FileDescriptor getDescriptor(std::string fileId);
     std::string localName = "localhost";
@@ -63,6 +79,7 @@ private:
 
     bool running = true;
     std::mutex fileNamesMutex;
+    std::mutex downloadingFilesMutex;
     std::mutex dataMutex;
     static std::mutex singletonMutex;
     static std::unique_ptr<PeerServer> peerServer;

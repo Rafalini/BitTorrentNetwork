@@ -10,9 +10,14 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
             {"list-files", [this](istream &restOfLine) { listFiles(); }},
             {"list-local-files", [this](istream &restOfLine) { listLocalFiles(peerServer.getLocalFiles()); }},
             {"add-file", [this](istream &restOfLine) { addFile(restOfLine); }},
-            {"download-file", [this](istream &restOfLine) { downloadFile(restOfLine); }}
+            {"download-file", [this](istream &restOfLine) { downloadFile(restOfLine); }},
+            {"delete-file", [this](istream &restOfLine){ deleteFile(restOfLine); }},
+            {"stop-downloading-file", [this](istream &restOfLine){ stopDownloadingFile(restOfLine); }},
+            {"check-download-progress", [this](istream &restOfLine){ checkDownloadProgress(restOfLine); }}
     };
-    knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path", "download-file filename [original_owner]"};
+    knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path", "download-file filename [original_owner]",
+                     "delete-file filename [original_owner]", "stop-downloading-file filename [original_owner]",
+                     "check-download-progress filename [original_owner]"};
 }
 
 void CommandsParser::addFile(istream& args) {
@@ -33,14 +38,13 @@ void CommandsParser::addFile(istream& args) {
         out << "File was already added\n";
 }
 
-
 void CommandsParser::downloadFile(istream& args) {
     string fileName, owner;
     args >> fileName >> owner;
     auto result = peerServer.downloadFile(fileName, owner);
     switch(result) {
         case PeerServer::DownloadResult::DOWNLOAD_OK:
-            out << "Downloading of " << fileName << " done.\n";
+            out << "Downloading of " << fileName << " has begun.\n";
             return;
         case PeerServer::DownloadResult::FILE_ALREADY_PRESENT:
             out << "File is already available locally\n";
@@ -54,7 +58,67 @@ void CommandsParser::downloadFile(istream& args) {
         case PeerServer::DownloadResult::FILE_REVOKED:
             out << "Download aborted, file revoked\n";
             return;
+        case PeerServer::DownloadResult::FILE_ALREADY_BEING_DOWNLOADED:
+            out << "This file is already being downloaded\n";
+            return;
     }
+}
+
+void CommandsParser::deleteFile(istream& args) {
+    string filename;
+    args >> filename;
+    if(filename.empty()) {
+        out << "Error: Path to file to delete not provided.\n";
+        return;
+    }
+    string owner;
+    args >> owner;
+    peerServer.lockLocalFiles();
+    auto fileDescriptor = std::find_if(peerServer.getLocalFiles().begin(),
+                                        peerServer.getLocalFiles().end(),
+                                        [&filename, &owner](const FileDescriptor& fileDescriptor){
+                                            return fileDescriptor.filename == filename &&
+                                            (owner.empty() || fileDescriptor.owner == owner);
+                                        } );
+    peerServer.unlockLocalFiles();
+    if(fileDescriptor == peerServer.getLocalFiles().end()) {
+        out << "Error: File to delete doesn't exist\n";
+        return;
+    }
+    peerServer.lockLocalFiles();
+    peerServer.deleteFile(*fileDescriptor);
+    peerServer.unlockLocalFiles();
+    out << filename << " deleted\n";
+}
+
+void CommandsParser::stopDownloadingFile(istream& args) {
+    string filename;
+    args >> filename;
+    string owner;
+    args >> owner;
+    if(filename.empty()) {
+        out << "Error: Path to file not provided.\n";
+        return;
+    }
+    if(peerServer.stopDownloadingFile(filename, owner)) {
+        out << "Stopped downloading " << filename << "\n";
+    } else {
+        out << "Nothing to stop\n";
+    }
+}
+
+void CommandsParser::checkDownloadProgress(istream& args) {
+    string filename;
+    args >> filename;
+    string owner;
+    args >> owner;
+    if(filename.empty()) {
+        out << "Error: Path to file not provided.\n";
+        return;
+    }
+    if (!peerServer.checkDownloadProgress(filename, owner))
+        out << "Error: There is no such file in the process of downloading.\n";
+
 }
 
 void CommandsParser::listCommands(const vector<string>& commands) {
@@ -71,7 +135,7 @@ void CommandsParser::listFiles() {
     auto dataTransformed = peerServer.transformData();
     peerServer.unlockData();
     for(auto& [file, owners] : dataTransformed )
-        out << file.filename  << "(" << file.owner  << "): from " << owners.size() << " sources\n";
+        out << file.filename << "(" << file.owner  << "): from " << owners.size() << " sources\n";
 }
 
 void CommandsParser::listLocalFiles(const std::set<FileDescriptor>& files) {
