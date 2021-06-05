@@ -143,17 +143,35 @@ bool PeerServer::checkDownloadProgress(const std::string& fileName, const std::s
 
 PeerServer::DownloadResult PeerServer::startDownloadingFile(const std::pair<FileDescriptor, std::set<std::string>>& file)
 {
-    int socket = createListeningClientSocket(file.first.owner, 8080);
 
-    sendMsg(socket,file.first.filename+":"+file.first.owner);                                          //send file name to owner
-    long bytesToDownload = std::atol(readMsg(socket).c_str());               //recieve file size in bytes
+    int socket = -1;
+    long bytesToDownload = -1;
 
-    if(bytesToDownload == (int)PeerServer::DownloadResult::FILE_REVOKED)
-        return DownloadResult::FILE_REVOKED;\
+    for(auto& distributor : file.second) {
+        try {
+            socket = createListeningClientSocket(distributor, 8080);
+        } catch (...)
+        {
+            //problem creating socket - silently ignore, distributor not available
+            continue;
+        }
 
-    // FIXME the same error message if file not found locally or remotely
-    if(bytesToDownload == (int)PeerServer::DownloadResult::FILE_NOT_FOUND)
-        return DownloadResult::FILE_NOT_FOUND;
+        sendMsg(socket,file.first.filename+":"+file.first.owner); //send file name to owner
+        bytesToDownload = std::atol(readMsg(socket).c_str());     //recieve file size in bytes
+
+        if(bytesToDownload == (int)PeerServer::DownloadResult::FILE_REVOKED)
+            return DownloadResult::FILE_REVOKED;
+
+        // If file not found, try searching next, otherwise break out of loop and download the rest
+        if(bytesToDownload != (int)PeerServer::DownloadResult::FILE_NOT_FOUND) {
+            break;
+        }
+    }
+
+    if(socket == -1 || bytesToDownload == (int)PeerServer::DownloadResult::FILE_REVOKED
+            || bytesToDownload == (int)PeerServer::DownloadResult::FILE_NOT_FOUND ) {
+        return DownloadResult::FILE_NOT_AVAILABLE_TO_DOWNLOAD;
+    }
 
     fs::path workingDir = fs::current_path() / "bittorrent";
     fs::path destinationFile = workingDir / (file.first.filename + ":" + file.first.owner);
