@@ -22,7 +22,7 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
 }
 
 void CommandsParser::addFile(istream& args) {
-    string pathToFile;
+    fs::path pathToFile;
     args >> pathToFile;
     if(pathToFile.empty()) {
         out << "Error: Path to file not provided.\n";
@@ -32,9 +32,8 @@ void CommandsParser::addFile(istream& args) {
         out << "Error: File doesn't exist\n";
         return;
     }
-    fs::path fromPath(pathToFile);
-    if(peerServer.addFile(fromPath))
-        out << fromPath.filename() << " saved\n";
+    if(peerServer.addFile(pathToFile))
+        out << pathToFile.filename() << " saved\n";
     else
         out << "File was already added\n";
 }
