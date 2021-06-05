@@ -13,11 +13,12 @@ CommandsParser::CommandsParser(PeerServer& peerServer_, std::istream& in_, std::
             {"download-file", [this](istream &restOfLine) { downloadFile(restOfLine); }},
             {"delete-file", [this](istream &restOfLine){ deleteFile(restOfLine); }},
             {"stop-downloading-file", [this](istream &restOfLine){ stopDownloadingFile(restOfLine); }},
-            {"check-download-progress", [this](istream &restOfLine){ checkDownloadProgress(restOfLine); }}
+            {"check-download-progress", [this](istream &restOfLine){ checkDownloadProgress(restOfLine); }},
+            {"copy-file", [this](istream &restOfLine){ copyFile(restOfLine); }}
     };
     knownCommands = {"exit", "help", "list-files", "list-local-files", "add-file file_path", "download-file filename [original_owner]",
                      "delete-file filename [original_owner]", "stop-downloading-file filename [original_owner]",
-                     "check-download-progress filename [original_owner]"};
+                     "check-download-progress filename [original_owner]", "copy-file path_to_save_as filename [original_owner]"};
 }
 
 void CommandsParser::addFile(istream& args) {
@@ -66,6 +67,37 @@ void CommandsParser::downloadFile(istream& args) {
             return;
     }
 }
+
+void CommandsParser::copyFile(istream& args) {
+    fs::path pathToFile;
+    args >> pathToFile;
+    std::cout << "path:" << pathToFile.string() << ";\n";
+
+    string filename;
+    args >> filename;
+    if(filename.empty()) {
+        out << "Error: Path to file to delete not provided.\n";
+        return;
+    }
+    string owner;
+    args >> owner;
+    peerServer.lockLocalFiles();
+    auto fileDescriptor = std::find_if(peerServer.getLocalFiles().begin(),
+                                       peerServer.getLocalFiles().end(),
+                                       [&filename, &owner](const FileDescriptor& fileDescriptor){
+                                           return fileDescriptor.filename == filename &&
+                                                  (owner.empty() || fileDescriptor.owner == owner);
+                                       } );
+    peerServer.unlockLocalFiles();
+    if(fileDescriptor == peerServer.getLocalFiles().end()) {
+        out << "Error: File to copy doesn't exist\n";
+        return;
+    }
+    fs::copy("bittorrent/" + (*fileDescriptor).filename + ":" + (*fileDescriptor).owner, pathToFile);
+
+    out << (*fileDescriptor).filename << "(" << (*fileDescriptor).owner << ") copied to " << pathToFile.string() << "\n";
+}
+
 
 void CommandsParser::deleteFile(istream& args) {
     string filename;
