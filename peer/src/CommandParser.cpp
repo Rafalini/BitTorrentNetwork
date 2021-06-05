@@ -61,6 +61,9 @@ void CommandsParser::downloadFile(istream& args) {
         case PeerServer::DownloadResult::FILE_ALREADY_BEING_DOWNLOADED:
             out << "This file is already being downloaded\n";
             return;
+        case PeerServer::DownloadResult::FILE_NOT_AVAILABLE_TO_DOWNLOAD:
+            out << "None of the other peers owning this file is available at the moment. Please try again later\n";
+            return;
     }
 }
 

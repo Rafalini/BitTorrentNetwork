@@ -53,7 +53,8 @@ public:
         DOWNLOAD_OK = 0,
         FILE_ALREADY_PRESENT,
         DOWNLOAD_ABORTED,
-        FILE_ALREADY_BEING_DOWNLOADED
+        FILE_ALREADY_BEING_DOWNLOADED,
+        FILE_NOT_AVAILABLE_TO_DOWNLOAD
     };
     DownloadResult downloadFile(const std::string& fileName, const std::string& owner);
     void updateData(const Config::Data& data);
@@ -70,7 +71,7 @@ public:
 private:
     std::vector<std::tuple<FileDescriptor, long, long>> downloadingFiles;
     std::string myAddr;
-    const int chunkSize = 30;//1024; //size of one chunk of data that is send during file download
+    static constexpr int chunkSize = 30;//1024; //size of one chunk of data that is send during file download
 
     FileDescriptor getDescriptor(std::string fileId);
     std::string localName = "localhost";
@@ -88,6 +89,5 @@ private:
     void uploadNBytes(int socket, long bytesToUpload, long offset, fs::path destinationFile);
     void handleDownloadRequest(int msgSocket);
     bool isFileRevoked();
-
     void sendHeartbeatPeriodically(const std::string &trackerAddr, int port, unsigned int interval);
 };
