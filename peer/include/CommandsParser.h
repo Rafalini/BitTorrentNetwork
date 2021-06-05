@@ -18,6 +18,7 @@ private:
     void deleteFile(std::istream& args);
     void stopDownloadingFile(std::istream& args);
     void checkDownloadProgress(std::istream& args);
+    void copyFile(std::istream& args);
     void listCommands(const std::vector<std::string>& commands);
     void listFiles();
     void listLocalFiles(const std::set<FileDescriptor>& files);
